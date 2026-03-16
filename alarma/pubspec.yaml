@@ -1,0 +1,39 @@
+name: alarma
+description: Aplicatie alarma cu volum progresiv si sunete personalizate
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  android_alarm_manager_plus: ^5.0.0
+  audioplayers: ^6.0.0 
+  sqflite: ^2.3.0
+  path: ^1.9.0
+  permission_handler: ^11.3.0
+  file_picker: ^8.0.3
+  flutter_local_notifications: ^17.1.2
+  path_provider: ^2.1.2
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/logo/app_logo.png
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/sounds/
+    - assets/logo/
