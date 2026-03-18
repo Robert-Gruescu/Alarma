@@ -106,13 +106,14 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
 
   Future<void> _save() async {
     if (_selectedSound == null) return;
+
     final alarm = AlarmModel(
       id: widget.alarm?.id,
       label: _labelCtrl.text.trim(),
       hour: _hour,
       minute: _minute,
       repeatDays: _repeatDays,
-      isEnabled: true,
+      isEnabled: widget.alarm?.isEnabled ?? true,
       soundId: _selectedSound!.id!,
       soundPath: _selectedSound!.path,
       soundName: _selectedSound!.name,
@@ -121,14 +122,20 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
       maxVolume: _maxVolume,
       snoozeMinutes: _snoozeOptions[_snoozeIndex],
     );
-    if (_isEditing) {
-      await _db.updateAlarm(alarm);
-      await _scheduler.cancelAlarm(alarm.id!);
-      if (alarm.isEnabled) await _scheduler.scheduleAlarm(alarm);
-    } else {
-      final id = await _db.insertAlarm(alarm);
-      await _scheduler.scheduleAlarm(alarm.copyWith(id: id));
+
+    try {
+      if (_isEditing) {
+        await _db.updateAlarm(alarm);
+        await _scheduler.cancelAlarm(alarm.id!);
+        if (alarm.isEnabled) await _scheduler.scheduleAlarm(alarm);
+      } else {
+        final id = await _db.insertAlarm(alarm);
+        await _scheduler.scheduleAlarm(alarm.copyWith(id: id));
+      }
+    } catch (e) {
+      debugPrint('Save error: $e');
     }
+
     if (mounted) Navigator.pop(context, true);
   }
 

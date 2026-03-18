@@ -78,13 +78,24 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _toggleAlarm(AlarmModel alarm) async {
-    final updated = alarm.copyWith(isEnabled: !alarm.isEnabled);
-    await _db.toggleAlarm(alarm.id!, updated.isEnabled);
-    if (updated.isEnabled) {
-      await _scheduler.scheduleAlarm(updated);
+    // Update vizual imediat, fara sa astepte DB sau scheduler
+    setState(() {
+      final index = _alarms.indexWhere((a) => a.id == alarm.id);
+      if (index != -1) {
+        _alarms[index] = alarm.copyWith(isEnabled: !alarm.isEnabled);
+      }
+    });
+
+    // Apoi operatiile async in background
+    final newEnabled = !alarm.isEnabled;
+    await _db.toggleAlarm(alarm.id!, newEnabled);
+    if (newEnabled) {
+      await _scheduler.scheduleAlarm(alarm.copyWith(isEnabled: true));
     } else {
       await _scheduler.cancelAlarm(alarm.id!);
     }
+
+    // Reload final pentru sincronizare
     await _loadAlarms();
   }
 
