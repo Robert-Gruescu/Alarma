@@ -62,7 +62,17 @@ class AlarmScheduler {
     final t = alarm.repeatDays.any((d) => d)
         ? _nextRepeat(alarm)
         : _nextOneShot(alarm);
+    await _scheduleAt(alarm, t);
+  }
 
+  // Programeaza un snooze la o ora arbitrara, folosind acelasi id de alarma
+  // (ca getAlarmById sa-l gaseasca cand suna din nou).
+  Future<void> scheduleSnooze(AlarmModel alarm, DateTime time) async {
+    if (alarm.id == null) return;
+    await _scheduleAt(alarm, time);
+  }
+
+  Future<void> _scheduleAt(AlarmModel alarm, DateTime t) async {
     // Programeaza alarma nativa prin Kotlin (pentru sunet)
     try {
       await _alarmChannel.invokeMethod('scheduleNativeAlarm', {
@@ -76,7 +86,7 @@ class AlarmScheduler {
       });
     } catch (_) {}
 
-    // Programeaza si alarm_manager_plus pentru notificarea full-screen
+    // Programeaza si alarm_manager_plus pentru ecranul full-screen / fallback
     await AndroidAlarmManager.oneShotAt(
       t,
       alarm.id!,

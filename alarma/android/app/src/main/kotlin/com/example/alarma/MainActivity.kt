@@ -15,6 +15,10 @@ class MainActivity : FlutterActivity() {
 
     private val CHANNEL = "com.example.alarma/alarm_sound"
 
+    // Id-ul alarmei cu care a fost lansata activitatea (lock screen / cold start).
+    // Flutter il preia prin consumePendingAlarm cand e gata, ca sa nu se piarda.
+    private var pendingAlarmId: Int = -1
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -49,8 +53,10 @@ class MainActivity : FlutterActivity() {
         if (intent?.getBooleanExtra("show_ringing", false) == true) {
             val alarmId = intent.getIntExtra("alarm_id", -1)
             if (alarmId != -1) {
-                // Trimite alarm_id la Flutter via IsolateNameServer port
-                // Flutter va porni sunetul si va afisa RingingScreen
+                // Retine id-ul: la cold start, Dart inca nu e gata si invokeMethod
+                // se poate pierde. Flutter il preia prin consumePendingAlarm.
+                pendingAlarmId = alarmId
+                // Daca engine-ul deja ruleaza (app deschisa), trimite imediat.
                 flutterEngine?.dartExecutor?.let {
                     MethodChannel(it.binaryMessenger, CHANNEL)
                         .invokeMethod("triggerAlarmFromNative", alarmId)
@@ -67,6 +73,11 @@ class MainActivity : FlutterActivity() {
                     "moveToBack" -> {
                         moveTaskToBack(true)
                         result.success(null)
+                    }
+                    "consumePendingAlarm" -> {
+                        val id = pendingAlarmId
+                        pendingAlarmId = -1
+                        result.success(id)
                     }
                     "scheduleNativeAlarm" -> {
                         val alarmId = call.argument<Int>("alarm_id") ?: 0

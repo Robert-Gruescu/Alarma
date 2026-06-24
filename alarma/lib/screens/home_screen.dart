@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/alarm_model.dart';
 import '../services/database_service.dart';
 import '../services/alarm_scheduler.dart';
 import '../services/alarm_refresh_service.dart';
 import 'add_alarm_screen.dart';
 import 'sounds_screen.dart';
+import 'permissions_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,6 +51,21 @@ class _HomeScreenState extends State<HomeScreen>
       duration: const Duration(seconds: 6),
     )..repeat(reverse: true);
     _loadAlarms();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPermissions());
+  }
+
+  // La pornire, daca lipsesc permisiuni critice, deschide ecranul de permisiuni.
+  Future<void> _checkPermissions() async {
+    final notif = await Permission.notification.status;
+    final overlay = await Permission.systemAlertWindow.status;
+    final exact = await Permission.scheduleExactAlarm.status;
+    final allOk = notif.isGranted && overlay.isGranted && exact.isGranted;
+    if (!allOk && mounted) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PermissionsScreen()),
+      );
+    }
   }
 
   void _onAlarmRefreshTick() {
@@ -259,6 +276,19 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ),
       actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
+          child: _glassButton(
+            icon: Icons.shield_rounded,
+            color: _roseDark,
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PermissionsScreen()),
+              );
+            },
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
           child: _glassButton(

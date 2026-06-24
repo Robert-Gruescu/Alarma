@@ -64,6 +64,7 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
   final _db = DatabaseService();
   final _audio = AudioService();
   bool _ringingShown = false;
+  int? _currentRingingId;
 
   @override
   void initState() {
@@ -83,6 +84,7 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkLaunchFromNotification();
+      _consumePendingNativeAlarm();
     });
   }
 
@@ -94,11 +96,23 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
     }
   }
 
-  void _onAlarm(dynamic id) async {
-    if (_ringingShown && _audio.isPlaying) return;
-    _ringingShown = false;
+  // La pornire la rece (telefon blocat / app inchisa), Kotlin a salvat id-ul
+  // alarmei pentru ca triggerAlarmFromNative se poate pierde inainte ca Dart
+  // sa fie gata. Il preluam acum.
+  Future<void> _consumePendingNativeAlarm() async {
+    try {
+      final id = await _alarmChannel.invokeMethod<int>('consumePendingAlarm');
+      if (id != null && id != -1) _onAlarm(id);
+    } catch (_) {}
+  }
 
-    final alarm = await _db.getAlarmById(id as int);
+  void _onAlarm(dynamic rawId) async {
+    final id = rawId as int;
+    // Sunetul e pornit de serviciul nativ Kotlin (AlarmSoundService).
+    // Aici doar afisam ecranul; evitam sa-l deschidem de doua ori.
+    if (_ringingShown && _currentRingingId == id) return;
+
+    final alarm = await _db.getAlarmById(id);
     if (alarm == null) return;
 
     // Reprogrameaza imediat urmatoarea aparitie daca e repetitiva
@@ -106,14 +120,7 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
       await AlarmScheduler().scheduleAlarm(alarm);
     }
 
-    await _audio.playAlarm(
-      path: alarm.soundPath,
-      isAsset: !alarm.soundPath.startsWith('/'),
-      progressive: alarm.progressiveVolume,
-      progressiveDurationSeconds: alarm.progressiveDurationSeconds,
-      maxVolume: alarm.maxVolume,
-    );
-
+    _currentRingingId = id;
     _ringingShown = true;
     await _nav.currentState?.push(
       MaterialPageRoute(
@@ -132,28 +139,26 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
             AlarmRefreshService.instance.notifyRefresh();
 
             _ringingShown = false;
+            _currentRingingId = null;
             _nav.currentState?.pop();
           },
           onSnooze: () async {
             await _audio.stop();
             AlarmRefreshService.instance.notifyRefresh();
             _ringingShown = false;
+            _currentRingingId = null;
             _nav.currentState?.pop();
             final snoozeTime = DateTime.now().add(
               Duration(minutes: alarm.snoozeMinutes),
             );
-            await AndroidAlarmManager.oneShotAt(
-              snoozeTime,
-              alarm.id! + 1000,
-              alarmCallback,
-              exact: true,
-              wakeup: true,
-            );
+            // Reprogrameaza aceeasi alarma (sunet nativ + ecran) la ora snooze.
+            await AlarmScheduler().scheduleSnooze(alarm, snoozeTime);
           },
         ),
       ),
     );
     _ringingShown = false;
+    _currentRingingId = null;
   }
 
   @override

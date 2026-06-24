@@ -82,26 +82,215 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
+    int tempHour = _hour;
+    int tempMinute = _minute;
+    final hourCtrl = FixedExtentScrollController(initialItem: _hour);
+    final minuteCtrl = FixedExtentScrollController(initialItem: _minute);
+
+    final confirmed = await showDialog<bool>(
       context: context,
-      initialTime: TimeOfDay(hour: _hour, minute: _minute),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: _roseDark,
-            onPrimary: Colors.white,
-            surface: _surface,
-            onSurface: _textPrimary,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFDF0F6), Color(0xFFF0F6FD)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _rosePastel.withValues(alpha: 0.35),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Seteaza ora',
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: _textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Trage in sus / jos',
+                style: GoogleFonts.lato(
+                  fontSize: 12,
+                  color: _textSecond,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 180,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Banda de selectie centrala
+                    Container(
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            _rosePastel.withValues(alpha: 0.22),
+                            _bluePastel.withValues(alpha: 0.22),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _rosePastel.withValues(alpha: 0.4),
+                          width: 1.2,
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _wheel(
+                          controller: hourCtrl,
+                          count: 24,
+                          onChanged: (v) => tempHour = v,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Text(
+                            ':',
+                            style: GoogleFonts.playfairDisplay(
+                              fontSize: 40,
+                              fontWeight: FontWeight.w700,
+                              color: _roseDark,
+                            ),
+                          ),
+                        ),
+                        _wheel(
+                          controller: minuteCtrl,
+                          count: 60,
+                          onChanged: (v) => tempMinute = v,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(ctx, false),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: _rosePastel.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Anuleaza',
+                            style: GoogleFonts.lato(
+                              color: _textSecond,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(ctx, true),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFF2B8CC), Color(0xFFB8D4F2)],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _rosePastel.withValues(alpha: 0.4),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            'OK',
+                            style: GoogleFonts.lato(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        child: child!,
       ),
     );
-    if (picked != null)
+
+    hourCtrl.dispose();
+    minuteCtrl.dispose();
+
+    if (confirmed == true) {
       setState(() {
-        _hour = picked.hour;
-        _minute = picked.minute;
+        _hour = tempHour;
+        _minute = tempMinute;
       });
+    }
+  }
+
+  // Roata scroll pentru ore/minute (draggable, infinita: buclează 23→00, 59→00).
+  Widget _wheel({
+    required FixedExtentScrollController controller,
+    required int count,
+    required ValueChanged<int> onChanged,
+  }) {
+    return SizedBox(
+      width: 76,
+      height: 180,
+      child: ListWheelScrollView.useDelegate(
+        controller: controller,
+        itemExtent: 56,
+        perspective: 0.003,
+        diameterRatio: 1.3,
+        physics: const FixedExtentScrollPhysics(),
+        // index-ul poate creste/scadea la nesfarsit; valoarea reala e modulo count
+        onSelectedItemChanged: (index) => onChanged(index % count),
+        childDelegate: ListWheelChildLoopingListDelegate(
+          children: List.generate(
+            count,
+            (index) => Center(
+              child: Text(
+                index.toString().padLeft(2, '0'),
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 38,
+                  fontWeight: FontWeight.w700,
+                  color: _textPrimary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _save() async {

@@ -7,7 +7,7 @@ import android.os.PowerManager
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val soundPath = intent.getStringExtra("sound_path") ?: "sounds/digital_beep.mp3"
+        val soundPath = intent.getStringExtra("sound_path") ?: "assets/sounds/digital_beep.mp3"
         val isAsset = intent.getBooleanExtra("is_asset", true)
         val maxVolume = intent.getFloatExtra("max_volume", 1.0f)
         val progressive = intent.getBooleanExtra("progressive", false)
