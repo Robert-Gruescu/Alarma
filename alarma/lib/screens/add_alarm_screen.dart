@@ -304,7 +304,8 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
       hour: _hour,
       minute: _minute,
       repeatDays: _repeatDays,
-      isEnabled: widget.alarm?.isEnabled ?? true,
+      // La salvare alarma devine mereu activa (chiar daca era oprita inainte)
+      isEnabled: true,
       soundId: _selectedSound!.id!,
       soundPath: _selectedSound!.path,
       soundName: _selectedSound!.name,
