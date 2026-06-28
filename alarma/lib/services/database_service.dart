@@ -14,7 +14,15 @@ class DatabaseService {
     final path = join(await getDatabasesPath(), 'alarma.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        // v2: coloana 'vibrate' (vibratie la sonerie). Default 1 = pornit.
+        if (oldVersion < 2) {
+          await db.execute(
+            "ALTER TABLE alarms ADD COLUMN vibrate INTEGER NOT NULL DEFAULT 1",
+          );
+        }
+      },
       onCreate: (db, _) async {
         await db.execute('''
         CREATE TABLE alarms (
@@ -27,7 +35,8 @@ class DatabaseService {
           progressive_volume INTEGER NOT NULL DEFAULT 1,
           progressive_duration_seconds INTEGER NOT NULL DEFAULT 60,
           max_volume REAL NOT NULL DEFAULT 1.0,
-          snooze_minutes INTEGER NOT NULL DEFAULT 5
+          snooze_minutes INTEGER NOT NULL DEFAULT 5,
+          vibrate INTEGER NOT NULL DEFAULT 1
         )''');
         await db.execute('''
         CREATE TABLE sounds (

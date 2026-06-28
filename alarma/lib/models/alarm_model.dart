@@ -36,6 +36,7 @@ class AlarmModel {
   final int progressiveDurationSeconds;
   final double maxVolume;
   final int snoozeMinutes;
+  final bool vibrate;
 
   AlarmModel({
     this.id,
@@ -51,6 +52,7 @@ class AlarmModel {
     this.progressiveDurationSeconds = 60,
     this.maxVolume = 1.0,
     this.snoozeMinutes = 5,
+    this.vibrate = true,
   }) : repeatDays = repeatDays ?? List.filled(7, false);
 
   String get repeatDaysString {
@@ -81,6 +83,7 @@ class AlarmModel {
         'progressive_duration_seconds': progressiveDurationSeconds,
         'max_volume': maxVolume,
         'snooze_minutes': snoozeMinutes,
+        'vibrate': vibrate ? 1 : 0,
       };
 
   factory AlarmModel.fromMap(Map<String, dynamic> map) {
@@ -99,6 +102,7 @@ class AlarmModel {
       progressiveDurationSeconds: map['progressive_duration_seconds'] ?? 60,
       maxVolume: (map['max_volume'] as num?)?.toDouble() ?? 1.0,
       snoozeMinutes: map['snooze_minutes'] ?? 5,
+      vibrate: map['vibrate'] == null ? true : map['vibrate'] == 1,
     );
   }
 
@@ -116,6 +120,7 @@ class AlarmModel {
     int? progressiveDurationSeconds,
     double? maxVolume,
     int? snoozeMinutes,
+    bool? vibrate,
   }) =>
       AlarmModel(
         id: id ?? this.id,
@@ -132,5 +137,6 @@ class AlarmModel {
             progressiveDurationSeconds ?? this.progressiveDurationSeconds,
         maxVolume: maxVolume ?? this.maxVolume,
         snoozeMinutes: snoozeMinutes ?? this.snoozeMinutes,
+        vibrate: vibrate ?? this.vibrate,
       );
 }

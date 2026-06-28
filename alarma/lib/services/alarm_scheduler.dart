@@ -83,6 +83,11 @@ class AlarmScheduler {
         'max_volume': alarm.maxVolume,
         'progressive': alarm.progressiveVolume,
         'progressive_duration': alarm.progressiveDurationSeconds,
+        'vibrate': alarm.vibrate,
+        // Trimise pentru reprogramarea nativa dupa restart (vezi BootReceiver)
+        'hour': alarm.hour,
+        'minute': alarm.minute,
+        'repeat_days': alarm.repeatDays.map((d) => d ? '1' : '0').join(''),
       });
     } catch (_) {}
 

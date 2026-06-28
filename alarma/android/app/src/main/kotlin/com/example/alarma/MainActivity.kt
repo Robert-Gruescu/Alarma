@@ -80,32 +80,27 @@ class MainActivity : FlutterActivity() {
                         result.success(id)
                     }
                     "scheduleNativeAlarm" -> {
-                        val alarmId = call.argument<Int>("alarm_id") ?: 0
-                        val triggerTime = call.argument<Long>("trigger_time") ?: 0L
-                        val soundPath = call.argument<String>("sound_path") ?: ""
-                        val isAsset = call.argument<Boolean>("is_asset") ?: true
-                        val maxVolume = (call.argument<Double>("max_volume") ?: 1.0).toFloat()
-                        val progressive = call.argument<Boolean>("progressive") ?: false
-                        val progressiveDuration = call.argument<Int>("progressive_duration") ?: 30
-
-                        val intent = Intent(this, AlarmReceiver::class.java).apply {
-                            putExtra("alarm_id", alarmId)
-                            putExtra("sound_path", soundPath)
-                            putExtra("is_asset", isAsset)
-                            putExtra("max_volume", maxVolume)
-                            putExtra("progressive", progressive)
-                            putExtra("progressive_duration", progressiveDuration)
-                        }
-                        val pi = PendingIntent.getBroadcast(
-                            this, alarmId + 10000, intent,
-                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                        val alarm = NativeAlarm(
+                            id = call.argument<Int>("alarm_id") ?: 0,
+                            triggerTime = call.argument<Long>("trigger_time") ?: 0L,
+                            soundPath = call.argument<String>("sound_path") ?: "",
+                            isAsset = call.argument<Boolean>("is_asset") ?: true,
+                            maxVolume = (call.argument<Double>("max_volume") ?: 1.0).toFloat(),
+                            progressive = call.argument<Boolean>("progressive") ?: false,
+                            progressiveDuration = call.argument<Int>("progressive_duration") ?: 30,
+                            vibrate = call.argument<Boolean>("vibrate") ?: true,
+                            hour = call.argument<Int>("hour") ?: 0,
+                            minute = call.argument<Int>("minute") ?: 0,
+                            repeatDays = call.argument<String>("repeat_days") ?: "0000000"
                         )
-                        val am = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-                        am.setAlarmClock(AlarmManager.AlarmClockInfo(triggerTime, pi), pi)
+                        // Salveaza pentru rearmarea dupa restart + programeaza acum.
+                        AlarmStore.save(this, alarm)
+                        AlarmStore.arm(this, alarm, alarm.triggerTime)
                         result.success(null)
                     }
                     "cancelNativeAlarm" -> {
                         val alarmId = call.argument<Int>("alarm_id") ?: 0
+                        AlarmStore.remove(this, alarmId)
                         val intent = Intent(this, AlarmReceiver::class.java)
                         val pi = PendingIntent.getBroadcast(
                             this, alarmId + 10000, intent,

@@ -39,6 +39,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
   late int _progressiveDuration;
   late double _maxVolume;
   late int _snoozeIndex;
+  late bool _vibrate;
 
   List<AlarmSound> _sounds = [];
   AlarmSound? _selectedSound;
@@ -62,6 +63,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
     _progressiveDuration = a?.progressiveDurationSeconds ?? 60;
     _maxVolume = a?.maxVolume ?? 1.0;
     _snoozeIndex = _snoozeOptions.indexOf(a?.snoozeMinutes ?? 5).clamp(0, 4);
+    _vibrate = a?.vibrate ?? true;
     _labelCtrl.text = a?.label ?? '';
     _loadSounds(a?.soundId);
   }
@@ -310,6 +312,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
       progressiveDurationSeconds: _progressiveDuration,
       maxVolume: _maxVolume,
       snoozeMinutes: _snoozeOptions[_snoozeIndex],
+      vibrate: _vibrate,
     );
 
     try {
@@ -815,6 +818,41 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
                 onChanged: (v) => setState(() => _maxVolume = v),
               ),
             ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  _rosePastel.withOpacity(0.3),
+                  _bluePastel.withOpacity(0.3),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _gradientIcon(Icons.vibration_rounded),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  'Vibratie',
+                  style: GoogleFonts.lato(
+                    color: _textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              _gradientSwitch(
+                _vibrate,
+                (v) => setState(() => _vibrate = v),
+              ),
+            ],
           ),
         ],
       ),

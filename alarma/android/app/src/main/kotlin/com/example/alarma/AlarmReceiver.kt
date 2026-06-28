@@ -12,6 +12,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val maxVolume = intent.getFloatExtra("max_volume", 1.0f)
         val progressive = intent.getBooleanExtra("progressive", false)
         val progressiveDuration = intent.getIntExtra("progressive_duration", 30)
+        val vibrate = intent.getBooleanExtra("vibrate", true)
         val alarmId = intent.getIntExtra("alarm_id", 0)
 
         // WakeLock cu FULL_WAKE_LOCK + ACQUIRE_CAUSES_WAKEUP = porneste ecranul fizic
@@ -31,6 +32,7 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra("max_volume", maxVolume)
             putExtra("progressive", progressive)
             putExtra("progressive_duration", progressiveDuration)
+            putExtra("vibrate", vibrate)
             putExtra("alarm_id", alarmId)
         }
         context.startForegroundService(serviceIntent)

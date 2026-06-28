@@ -11,8 +11,12 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 
 class AlarmSoundService : Service() {
@@ -22,6 +26,10 @@ class AlarmSoundService : Service() {
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
     private var savedAlarmVolume: Int = -1
+    private var savedVoiceVolume: Int = -1
+    // true daca exista un apel activ (GSM sau VoIP) cand porneste alarma.
+    private var inCall = false
+    private var vibrator: Vibrator? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "STOP") {
@@ -34,6 +42,7 @@ class AlarmSoundService : Service() {
         val maxVolume = intent?.getFloatExtra("max_volume", 1.0f) ?: 1.0f
         val progressive = intent?.getBooleanExtra("progressive", false) ?: false
         val progressiveDuration = intent?.getIntExtra("progressive_duration", 30) ?: 30
+        val vibrate = intent?.getBooleanExtra("vibrate", true) ?: true
         val alarmId = intent?.getIntExtra("alarm_id", -1) ?: -1
 
         // Wake lock — tine CPU activ
@@ -52,34 +61,64 @@ class AlarmSoundService : Service() {
         // Porneste sunetul
         playSound(soundPath, isAsset, maxVolume, progressive, progressiveDuration)
 
+        // Porneste vibratia (daca e activata pentru aceasta alarma)
+        if (vibrate) startVibration()
+
         return START_STICKY
     }
 
+    private fun startVibration() {
+        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vm = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vm.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(VIBRATOR_SERVICE) as Vibrator
+        }
+        // Pattern repetitiv: pauza 0ms, vibreaza 600ms, pauza 600ms (index 0 = loop).
+        val pattern = longArrayOf(0, 600, 600)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator?.vibrate(pattern, 0)
+        }
+    }
+
     private fun setupAudioManager() {
-        audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+        val am = getSystemService(AUDIO_SERVICE) as AudioManager
+        audioManager = am
 
-        // Salveaza volumul curent de alarma ca sa-l restauram dupa.
-        savedAlarmVolume = audioManager!!.getStreamVolume(AudioManager.STREAM_ALARM)
+        // Detecteaza daca exista un apel activ. In timpul unui apel Android
+        // atenueaza puternic STREAM_ALARM (sunetul aplicatiilor din fundal), asa
+        // ca alarma abia se aude. Solutia: in apel cantam pe STREAM_VOICE_CALL,
+        // canalul convorbirii, care NU e atenuat -> se aude la volumul apelului.
+        inCall = am.mode == AudioManager.MODE_IN_CALL ||
+                am.mode == AudioManager.MODE_IN_COMMUNICATION
 
-        // Stream-ul de alarma la MAXIM ABSOLUT: garanteaza ca se aude chiar si
-        // peste un apel telefonic. Volumul real ales de utilizator + cresterea
-        // progresiva sunt aplicate separat, prin scalarul MediaPlayer (0..maxVolume),
-        // deci nu se aplica de doua ori.
-        val maxStreamVolume = audioManager!!.getStreamMaxVolume(AudioManager.STREAM_ALARM)
-        audioManager!!.setStreamVolume(
-            AudioManager.STREAM_ALARM,
-            maxStreamVolume,
-            0 // fara UI
-        )
+        if (inCall) {
+            // Ridica volumul convorbirii la maxim (si il salvam ca sa-l restauram).
+            savedVoiceVolume = am.getStreamVolume(AudioManager.STREAM_VOICE_CALL)
+            val maxVoice = am.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL)
+            try {
+                am.setStreamVolume(AudioManager.STREAM_VOICE_CALL, maxVoice, 0)
+            } catch (_: Exception) {}
+        } else {
+            // Fara apel: stream-ul de alarma la maxim absolut.
+            savedAlarmVolume = am.getStreamVolume(AudioManager.STREAM_ALARM)
+            val maxAlarm = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+            am.setStreamVolume(AudioManager.STREAM_ALARM, maxAlarm, 0)
+        }
 
-        // Cere audio focus pe stream-ul de alarma.
-        // AUDIOFOCUS_GAIN_TRANSIENT = preluam focusul temporar; stream-ul de
-        // alarma e separat de cel al apelului (STREAM_VOICE_CALL), asa ca alarma
-        // suna peste apel fara sa il intrerupa.
+        // Cere audio focus cu usage potrivit canalului folosit.
+        val usage = if (inCall)
+            AudioAttributes.USAGE_VOICE_COMMUNICATION
+        else
+            AudioAttributes.USAGE_ALARM
         val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
             .setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setUsage(usage)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build()
             )
@@ -88,7 +127,7 @@ class AlarmSoundService : Service() {
             .build()
 
         audioFocusRequest = focusRequest
-        audioManager!!.requestAudioFocus(focusRequest)
+        am.requestAudioFocus(focusRequest)
     }
 
     private fun playSound(
@@ -96,15 +135,22 @@ class AlarmSoundService : Service() {
         progressive: Boolean, progressiveDuration: Int
     ) {
         try {
+            // In apel: cantam pe canalul convorbirii (STREAM_VOICE_CALL) ca sa se
+            // auda la volumul apelului. Altfel: stream-ul de alarma normal.
+            val attributes = if (inCall) {
+                @Suppress("DEPRECATION")
+                AudioAttributes.Builder()
+                    .setLegacyStreamType(AudioManager.STREAM_VOICE_CALL)
+                    .build()
+            } else {
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
+                    .build()
+            }
             mediaPlayer = MediaPlayer().apply {
-                // USAGE_ALARM este stream-ul care suna peste apeluri pe Android
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
-                        .build()
-                )
+                setAudioAttributes(attributes)
                 if (isAsset) {
                     val afd = assets.openFd("flutter_assets/$path")
                     setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
@@ -201,6 +247,10 @@ class AlarmSoundService : Service() {
         mediaPlayer?.release()
         mediaPlayer = null
 
+        // Opreste vibratia
+        vibrator?.cancel()
+        vibrator = null
+
         // Restaureaza volumul original de alarma
         if (savedAlarmVolume >= 0) {
             audioManager?.setStreamVolume(
@@ -208,6 +258,17 @@ class AlarmSoundService : Service() {
                 savedAlarmVolume,
                 0
             )
+        }
+
+        // Restaureaza volumul original al convorbirii (daca l-am modificat)
+        if (savedVoiceVolume >= 0) {
+            try {
+                audioManager?.setStreamVolume(
+                    AudioManager.STREAM_VOICE_CALL,
+                    savedVoiceVolume,
+                    0
+                )
+            } catch (_: Exception) {}
         }
 
         // Elibereaza audio focus
