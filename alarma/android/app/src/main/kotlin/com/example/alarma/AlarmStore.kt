@@ -52,19 +52,35 @@ object AlarmStore {
     // Alarma a fost oprita din actiunea "Opreste" a notificarii, deci fara ca
     // Flutter sa afle. Retinem id-ul; Dart il preia prin consumeStoppedAlarms
     // la pornire / revenire in prim-plan si isi actualizeaza baza de date.
+    // Intrarile se salveaza ca "id:timestamp" si expira: daca aplicatia nu e
+    // deschisa mult timp, un id vechi nu are voie sa dezactiveze o alarma pe
+    // care utilizatorul a reactivat-o intre timp.
+    private const val STOPPED_TTL_MS = 60 * 60 * 1000L // 1 ora
+
     fun markStopped(ctx: Context, id: Int) {
         if (id < 0) return
         val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val ids = HashSet(p.getStringSet(KEY_STOPPED, emptySet()) ?: emptySet())
-        ids.add(id.toString())
-        p.edit().putStringSet(KEY_STOPPED, ids).apply()
+        val now = System.currentTimeMillis()
+        val kept = (p.getStringSet(KEY_STOPPED, emptySet()) ?: emptySet())
+            .filter { entry ->
+                val ts = entry.substringAfter(':', "").toLongOrNull() ?: return@filter false
+                now - ts < STOPPED_TTL_MS
+            }
+            .toHashSet()
+        kept.add("$id:$now")
+        p.edit().putStringSet(KEY_STOPPED, kept).apply()
     }
 
     fun consumeStopped(ctx: Context): List<Int> {
         val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val ids = p.getStringSet(KEY_STOPPED, emptySet()) ?: emptySet()
+        val entries = p.getStringSet(KEY_STOPPED, emptySet()) ?: emptySet()
         p.edit().remove(KEY_STOPPED).apply()
-        return ids.mapNotNull { it.toIntOrNull() }
+        val now = System.currentTimeMillis()
+        return entries.mapNotNull { entry ->
+            val id = entry.substringBefore(':').toIntOrNull() ?: return@mapNotNull null
+            val ts = entry.substringAfter(':', "").toLongOrNull() ?: return@mapNotNull null
+            if (now - ts < STOPPED_TTL_MS) id else null
+        }
     }
 
     fun save(ctx: Context, a: NativeAlarm) {
@@ -142,6 +158,13 @@ object AlarmStore {
         )
         val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         am.setAlarmClock(AlarmManager.AlarmClockInfo(triggerTime, pi), pi)
+        // Log.w, nu Log.d/Log.i — Samsung le suprima in build release.
+        val inMs = triggerTime - System.currentTimeMillis()
+        android.util.Log.w(
+            "AlarmaStore",
+            "ARM alarma ${a.id} la $triggerTime (peste ${inMs / 1000}s), " +
+                "exact=${am.canScheduleExactAlarms()}"
+        )
     }
 
     // Ora urmatoarei declansari dupa restart. Pentru alarme repetitive

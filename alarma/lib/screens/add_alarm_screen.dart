@@ -59,7 +59,10 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
     _progressiveVolume = a?.progressiveVolume ?? true;
     _progressiveDuration = a?.progressiveDurationSeconds ?? 60;
     _maxVolume = a?.maxVolume ?? 1.0;
-    _snoozeIndex = _snoozeOptions.indexOf(a?.snoozeMinutes ?? 5).clamp(0, 4);
+    // indexOf da -1 pentru o valoare din afara listei; clamp(0,4) o ducea pe 0,
+    // adica 1 minut. Cadem pe 5 minute (valoarea implicita) in loc de asta.
+    final snoozeIdx = _snoozeOptions.indexOf(a?.snoozeMinutes ?? 5);
+    _snoozeIndex = snoozeIdx >= 0 ? snoozeIdx : _snoozeOptions.indexOf(5);
     _vibrate = a?.vibrate ?? true;
     _labelCtrl.text = a?.label ?? '';
     _loadSounds(a?.soundId);
@@ -67,9 +70,14 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
 
   Future<void> _loadSounds([int? selectedId]) async {
     final sounds = await _db.getAllSounds();
+    if (!mounted) return;
     setState(() {
       _sounds = sounds;
-      if (selectedId != null) {
+      if (sounds.isEmpty) {
+        // Nu se poate intampla azi (sunetele implicite nu se pot sterge), dar
+        // sounds.first ar arunca StateError, deci nu ne bazam pe asta.
+        _selectedSound = null;
+      } else if (selectedId != null) {
         _selectedSound = sounds.firstWhere(
           (s) => s.id == selectedId,
           orElse: () => sounds.first,

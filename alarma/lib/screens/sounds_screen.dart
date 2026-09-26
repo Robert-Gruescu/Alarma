@@ -41,6 +41,7 @@ class _SoundsScreenState extends State<SoundsScreen>
 
   Future<void> _loadSounds() async {
     final sounds = await _db.getAllSounds();
+    if (!mounted) return;
     setState(() => _sounds = sounds);
   }
 
@@ -88,6 +89,36 @@ class _SoundsScreenState extends State<SoundsScreen>
   }
 
   Future<void> _deleteCustomSound(AlarmSound sound) async {
+    // Refuza stergerea unui sunet aflat in uz: alarmele isi tin sound_path
+    // copiat, asa ca fisierul sters le-ar lasa sa sune mute.
+    final inUse = await _db.countAlarmsUsingSound(sound.path);
+    if (inUse > 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              inUse == 1
+                  ? 'Nu poti sterge "${sound.name}": e folosit de o alarma.'
+                  : 'Nu poti sterge "${sound.name}": e folosit de $inUse alarme.',
+              style: GoogleFonts.lato(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            backgroundColor: _roseDark.withValues(alpha: 0.95),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => Dialog(

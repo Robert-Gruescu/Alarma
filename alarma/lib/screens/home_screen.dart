@@ -90,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _loadAlarms() async {
     final alarms = await _db.getAllAlarms();
+    if (!mounted) return;
     setState(() => _alarms = alarms);
   }
 

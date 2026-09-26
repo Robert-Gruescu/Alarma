@@ -19,6 +19,7 @@ class AlarmReceiver : BroadcastReceiver() {
         // ruleaza sigur inaintea serviciului si a activitatii, deci MainActivity
         // nu poate citi flagul prea devreme si respinge din greseala soneria.
         AlarmStore.setRinging(context, alarmId)
+        android.util.Log.w("AlarmaReceiver", "DECLANSAT alarma $alarmId, sunet=$soundPath")
 
         // WakeLock cu FULL_WAKE_LOCK + ACQUIRE_CAUSES_WAKEUP = porneste ecranul fizic
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager

@@ -102,4 +102,16 @@ class DatabaseService {
 
   Future<void> deleteSound(int id) async =>
       (await database).delete('sounds', where: 'id=?', whereArgs: [id]);
+
+  // Cate alarme folosesc sunetul asta. Alarmele isi tin sound_path copiat, deci
+  // stergerea unui sunet in uz le-ar lasa cu o cale catre un fisier inexistent
+  // si ar suna mute.
+  Future<int> countAlarmsUsingSound(String path) async {
+    final db = await database;
+    final r = await db.rawQuery(
+      'SELECT COUNT(*) AS n FROM alarms WHERE sound_path = ?',
+      [path],
+    );
+    return (r.first['n'] as int?) ?? 0;
+  }
 }

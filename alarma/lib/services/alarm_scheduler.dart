@@ -1,5 +1,5 @@
-import 'dart:typed_data';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -39,8 +39,10 @@ void alarmCallback(int alarmId) async {
     ongoing: true,
     autoCancel: false,
     playSound: false,
-    enableVibration: true,
-    vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
+    // Vibratia e treaba lui AlarmSoundService, care respecta comutatorul
+    // `vibrate` al alarmei. Aici vibra necondiționat, deci se suprapunea peste
+    // cea nativa si vibra chiar si alarmele cu vibratia oprita.
+    enableVibration: false,
   );
 
   await n.show(
@@ -92,24 +94,35 @@ class AlarmScheduler {
         'minute': alarm.minute,
         'repeat_days': alarm.repeatDays.map((d) => d ? '1' : '0').join(''),
       });
-    } catch (_) {}
+    } catch (e) {
+      // NU inghiti eroarea: nativul deține sunetul, deci un eșec aici inseamna
+      // o alarma care afiseaza ecranul dar nu face zgomot — cel mai periculos
+      // mod de esec, si exact genul de lucru care a ascuns buguri pana acum.
+      debugPrint('EROARE scheduleNativeAlarm pentru alarma ${alarm.id}: $e');
+    }
 
     // Programeaza si alarm_manager_plus pentru ecranul full-screen / fallback
-    await AndroidAlarmManager.oneShotAt(
-      t,
-      alarm.id!,
-      alarmCallback,
-      exact: true,
-      wakeup: true,
-      rescheduleOnReboot: true,
-      alarmClock: true,
-    );
+    try {
+      await AndroidAlarmManager.oneShotAt(
+        t,
+        alarm.id!,
+        alarmCallback,
+        exact: true,
+        wakeup: true,
+        rescheduleOnReboot: true,
+        alarmClock: true,
+      );
+    } catch (e) {
+      debugPrint('EROARE oneShotAt pentru alarma ${alarm.id}: $e');
+    }
   }
 
   Future<void> cancelAlarm(int id) async {
     try {
       await _alarmChannel.invokeMethod('cancelNativeAlarm', {'alarm_id': id});
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('EROARE cancelNativeAlarm pentru alarma $id: $e');
+    }
     await AndroidAlarmManager.cancel(id);
     await FlutterLocalNotificationsPlugin().cancel(id);
   }

@@ -14,12 +14,20 @@ import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.util.Log
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 
 class AlarmSoundService : Service() {
+
+    companion object {
+        // Log.w/Log.e — Samsung suprima Log.d si Log.i in build release.
+        private const val TAG = "AlarmaSound"
+        // Sunet din assets, garantat prezent in APK.
+        private const val FALLBACK_SOUND = "assets/sounds/digital_beep.mp3"
+    }
 
     private var mediaPlayer: MediaPlayer? = null
     private var wakeLock: PowerManager.WakeLock? = null
@@ -33,6 +41,9 @@ class AlarmSoundService : Service() {
     // Id-ul alarmei care suna acum (retinut ca sa-l putem marca drept oprita
     // cand utilizatorul apasa "Opreste" direct din notificare).
     private var currentAlarmId: Int = -1
+    // Handlerul rampei de volum progresiv; trebuie oprit cand schimbam playerul,
+    // altfel continua sa scrie volume in MediaPlayer-ul urmator.
+    private var rampHandler: android.os.Handler? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "STOP") {
@@ -54,6 +65,13 @@ class AlarmSoundService : Service() {
         val progressiveDuration = intent?.getIntExtra("progressive_duration", 30) ?: 30
         val vibrate = intent?.getBooleanExtra("vibrate", true) ?: true
         val alarmId = intent?.getIntExtra("alarm_id", -1) ?: -1
+
+        // Serviciul e unul singur (id foreground fix 9999), deci o a doua alarma
+        // programata la aceeasi ora intra in ACEEASI instanta. Fara curatenia de
+        // aici, MediaPlayer-ul precedent ramanea orfan si canta pana la moartea
+        // procesului, iar vibratorul vechi vibra in continuare.
+        releasePlayback()
+
         currentAlarmId = alarmId
         AlarmStore.setRinging(this, alarmId)
 
@@ -77,6 +95,20 @@ class AlarmSoundService : Service() {
         if (vibrate) startVibration()
 
         return START_STICKY
+    }
+
+    // Opreste redarea si vibratia curente, fara sa atinga volumele salvate sau
+    // audio focus-ul (alea se restaureaza o singura data, in onDestroy).
+    private fun releasePlayback() {
+        rampHandler?.removeCallbacksAndMessages(null)
+        rampHandler = null
+        try {
+            mediaPlayer?.stop()
+        } catch (_: Exception) {}
+        mediaPlayer?.release()
+        mediaPlayer = null
+        vibrator?.cancel()
+        vibrator = null
     }
 
     private fun startVibration() {
@@ -108,16 +140,24 @@ class AlarmSoundService : Service() {
         inCall = am.mode == AudioManager.MODE_IN_CALL ||
                 am.mode == AudioManager.MODE_IN_COMMUNICATION
 
+        // Volumele se salveaza o SINGURA data. La a doua alarma in aceeasi
+        // instanta de serviciu, streamul e deja la maxim — daca resalvam, in
+        // onDestroy am "restaura" maximul si volumul telefonului ar ramane
+        // permanent dat la cap.
         if (inCall) {
             // Ridica volumul convorbirii la maxim (si il salvam ca sa-l restauram).
-            savedVoiceVolume = am.getStreamVolume(AudioManager.STREAM_VOICE_CALL)
+            if (savedVoiceVolume < 0) {
+                savedVoiceVolume = am.getStreamVolume(AudioManager.STREAM_VOICE_CALL)
+            }
             val maxVoice = am.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL)
             try {
                 am.setStreamVolume(AudioManager.STREAM_VOICE_CALL, maxVoice, 0)
             } catch (_: Exception) {}
         } else {
             // Fara apel: stream-ul de alarma la maxim absolut.
-            savedAlarmVolume = am.getStreamVolume(AudioManager.STREAM_ALARM)
+            if (savedAlarmVolume < 0) {
+                savedAlarmVolume = am.getStreamVolume(AudioManager.STREAM_ALARM)
+            }
             val maxAlarm = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
             am.setStreamVolume(AudioManager.STREAM_ALARM, maxAlarm, 0)
         }
@@ -138,6 +178,8 @@ class AlarmSoundService : Service() {
             .setOnAudioFocusChangeListener { } // ignoram schimbarile de focus
             .build()
 
+        // Elibereaza o cerere anterioara inainte de a face alta (a doua alarma).
+        audioFocusRequest?.let { am.abandonAudioFocusRequest(it) }
         audioFocusRequest = focusRequest
         am.requestAudioFocus(focusRequest)
     }
@@ -146,6 +188,22 @@ class AlarmSoundService : Service() {
         path: String, isAsset: Boolean, maxVolume: Float,
         progressive: Boolean, progressiveDuration: Int
     ) {
+        // Incearca sunetul cerut; daca nu se poate reda (sunet personalizat
+        // sters de pe disc, fisier corupt, cale invalida) cade pe un sunet din
+        // assets, care e garantat prezent in APK. O alarma care nu face zgomot
+        // e cel mai grav mod de esec posibil, deci nu acceptam tacerea.
+        if (tryPlay(path, isAsset, maxVolume, progressive, progressiveDuration)) return
+
+        Log.w(TAG, "Sunetul '$path' nu a putut fi redat; trec pe sunetul de rezerva")
+        if (tryPlay(FALLBACK_SOUND, true, maxVolume, progressive, progressiveDuration)) return
+
+        Log.e(TAG, "Nici sunetul de rezerva nu a putut fi redat")
+    }
+
+    private fun tryPlay(
+        path: String, isAsset: Boolean, maxVolume: Float,
+        progressive: Boolean, progressiveDuration: Int
+    ): Boolean {
         try {
             // In apel: cantam pe canalul convorbirii (STREAM_VOICE_CALL) ca sa se
             // auda la volumul apelului. Altfel: stream-ul de alarma normal.
@@ -182,8 +240,15 @@ class AlarmSoundService : Service() {
             if (progressive) {
                 rampVolume(maxVolume, progressiveDuration)
             }
+            return true
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.w(TAG, "Redare eșuata pentru '$path': ${e.message}")
+            // Nu lasa un player pe jumatate construit in urma.
+            try {
+                mediaPlayer?.release()
+            } catch (_: Exception) {}
+            mediaPlayer = null
+            return false
         }
     }
 
@@ -191,7 +256,11 @@ class AlarmSoundService : Service() {
         val steps = durationSec * 2
         val stepDelay = 500L
         var step = 0
+        // Handlerul e retinut in câmp ca releasePlayback sa-l poata opri; altfel
+        // rampa veche continua sa scrie volume in playerul nou.
+        rampHandler?.removeCallbacksAndMessages(null)
         val handler = android.os.Handler(mainLooper)
+        rampHandler = handler
         val runnable = object : Runnable {
             override fun run() {
                 if (mediaPlayer == null || step >= steps) return
@@ -258,13 +327,8 @@ class AlarmSoundService : Service() {
         // Nu mai suna nimic — ecranul de sonerie nu mai are voie sa reapara.
         AlarmStore.clearRinging(this)
 
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
-
-        // Opreste vibratia
-        vibrator?.cancel()
-        vibrator = null
+        // Opreste redarea, rampa de volum si vibratia.
+        releasePlayback()
 
         // Restaureaza volumul original de alarma
         if (savedAlarmVolume >= 0) {
