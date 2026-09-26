@@ -1,0 +1,8 @@
+# ── Documentatie interna ─────────────────────────────────────
+# Context de dezvoltare, nu se publica pe GitHub.
+docs/CONTEXT.md
+
+# ── Fisiere generate de sistem / OneDrive ────────────────────
+Thumbs.db
+desktop.ini
+.DS_Store
