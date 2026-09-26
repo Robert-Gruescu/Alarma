@@ -28,6 +28,44 @@ data class NativeAlarm(
 object AlarmStore {
     private const val PREFS = "alarma_native_alarms"
     private const val KEY_IDS = "ids"
+    private const val KEY_STOPPED = "stopped_ids"
+    private const val KEY_RINGING = "ringing_id"
+
+    // Id-ul alarmei care suna chiar acum (-1 = niciuna). Setat cand porneste
+    // AlarmSoundService, sters cand se opreste. Serveste ca sursa de adevar:
+    // intentul de deschidere a activitatii poate fi re-livrat de Android dupa
+    // ce taskul e reciclat, iar fara verificarea asta ecranul de sonerie
+    // reaparea desi alarma fusese deja oprita.
+    fun setRinging(ctx: Context, id: Int) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putInt(KEY_RINGING, id).apply()
+    }
+
+    fun clearRinging(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().remove(KEY_RINGING).apply()
+    }
+
+    fun ringingId(ctx: Context): Int =
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_RINGING, -1)
+
+    // Alarma a fost oprita din actiunea "Opreste" a notificarii, deci fara ca
+    // Flutter sa afle. Retinem id-ul; Dart il preia prin consumeStoppedAlarms
+    // la pornire / revenire in prim-plan si isi actualizeaza baza de date.
+    fun markStopped(ctx: Context, id: Int) {
+        if (id < 0) return
+        val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val ids = HashSet(p.getStringSet(KEY_STOPPED, emptySet()) ?: emptySet())
+        ids.add(id.toString())
+        p.edit().putStringSet(KEY_STOPPED, ids).apply()
+    }
+
+    fun consumeStopped(ctx: Context): List<Int> {
+        val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val ids = p.getStringSet(KEY_STOPPED, emptySet()) ?: emptySet()
+        p.edit().remove(KEY_STOPPED).apply()
+        return ids.mapNotNull { it.toIntOrNull() }
+    }
 
     fun save(ctx: Context, a: NativeAlarm) {
         val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

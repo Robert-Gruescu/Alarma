@@ -30,9 +30,19 @@ class AlarmSoundService : Service() {
     // true daca exista un apel activ (GSM sau VoIP) cand porneste alarma.
     private var inCall = false
     private var vibrator: Vibrator? = null
+    // Id-ul alarmei care suna acum (retinut ca sa-l putem marca drept oprita
+    // cand utilizatorul apasa "Opreste" direct din notificare).
+    private var currentAlarmId: Int = -1
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "STOP") {
+            // Raportam catre Dart doar oprirea din notificare. Daca oprirea vine
+            // din aplicatie (Opreste sau Amana), Flutter stie deja ce are de
+            // facut — iar la Amana marcarea ar fi anulat snooze-ul tocmai
+            // programat, cand _consumeStoppedAlarms ar fi consumat id-ul.
+            if (!intent.getBooleanExtra("from_app", false)) {
+                AlarmStore.markStopped(this, currentAlarmId)
+            }
             stopSelf()
             return START_NOT_STICKY
         }
@@ -44,6 +54,8 @@ class AlarmSoundService : Service() {
         val progressiveDuration = intent?.getIntExtra("progressive_duration", 30) ?: 30
         val vibrate = intent?.getBooleanExtra("vibrate", true) ?: true
         val alarmId = intent?.getIntExtra("alarm_id", -1) ?: -1
+        currentAlarmId = alarmId
+        AlarmStore.setRinging(this, alarmId)
 
         // Wake lock — tine CPU activ
         val pm = getSystemService(POWER_SERVICE) as PowerManager
@@ -243,6 +255,9 @@ class AlarmSoundService : Service() {
     }
 
     override fun onDestroy() {
+        // Nu mai suna nimic — ecranul de sonerie nu mai are voie sa reapara.
+        AlarmStore.clearRinging(this)
+
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null

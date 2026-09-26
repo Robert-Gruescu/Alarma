@@ -85,7 +85,44 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkLaunchFromNotification();
       _consumePendingNativeAlarm();
+      _consumeStoppedAlarms();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // La revenirea in prim-plan preluam alarmele oprite intre timp din
+    // notificare, ca lista sa nu arate activa o alarma deja consumata.
+    if (state == AppLifecycleState.resumed) _consumeStoppedAlarms();
+  }
+
+  // Utilizatorul poate opri soneria direct din actiunea "Opreste" a
+  // notificarii, caz in care Dart nu afla nimic si o alarma "o singura data"
+  // ramanea marcata activa in baza de date. Nativul retine id-urile oprite;
+  // aici le preluam si punem baza de date la zi.
+  Future<void> _consumeStoppedAlarms() async {
+    try {
+      final ids = await _alarmChannel.invokeListMethod<int>(
+        'consumeStoppedAlarms',
+      );
+      if (ids == null || ids.isEmpty) return;
+
+      var changed = false;
+      for (final id in ids) {
+        await notificationsPlugin.cancel(id);
+        final alarm = await _db.getAlarmById(id);
+        if (alarm == null) continue;
+        // Doar alarmele fara repetitie se consuma; cele repetitive raman
+        // active pentru urmatoarea aparitie, deja programata.
+        if (!alarm.repeatDays.any((d) => d) && alarm.isEnabled) {
+          await _db.toggleAlarm(id, false);
+          await AlarmScheduler().cancelAlarm(id);
+          changed = true;
+        }
+      }
+      if (changed) AlarmRefreshService.instance.notifyRefresh();
+    } catch (_) {}
   }
 
   Future<void> _checkLaunchFromNotification() async {
@@ -128,7 +165,21 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
         builder: (_) => RingingScreen(
           alarm: alarm,
           onStop: () async {
+            // Inchide ecranul PRIMUL, inainte de orice await. Animatia de
+            // inchidere are nevoie de cadre; daca intre timp apuca sa ruleze
+            // ceva async, ecranul poate ramane pe stiva si reapare la
+            // redeschiderea aplicatiei.
+            _ringingShown = false;
+            _currentRingingId = null;
+            _nav.currentState?.pop();
+
             await _audio.stop();
+
+            // Notificarea ongoing postata de alarmCallback (cand app-ul era
+            // inchis) trebuie scoasa mereu. cancelAlarm o anuleaza, dar el
+            // ruleaza doar pentru alarmele ne-repetitive; fara asta ramanea
+            // agatata in bara la alarmele repetitive.
+            await notificationsPlugin.cancel(alarm.id!);
 
             final isRepetitive = alarm.repeatDays.any((d) => d);
             if (!isRepetitive) {
@@ -137,22 +188,22 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
             }
 
             AlarmRefreshService.instance.notifyRefresh();
-
-            _ringingShown = false;
-            _currentRingingId = null;
-            _nav.currentState?.pop();
           },
           onSnooze: () async {
-            await _audio.stop();
-            AlarmRefreshService.instance.notifyRefresh();
+            // Vezi comentariul din onStop: inchidem ecranul inainte de await.
             _ringingShown = false;
             _currentRingingId = null;
             _nav.currentState?.pop();
+
+            await _audio.stop();
+            await notificationsPlugin.cancel(alarm.id!);
+
             final snoozeTime = DateTime.now().add(
               Duration(minutes: alarm.snoozeMinutes),
             );
             // Reprogrameaza aceeasi alarma (sunet nativ + ecran) la ora snooze.
             await AlarmScheduler().scheduleSnooze(alarm, snoozeTime);
+            AlarmRefreshService.instance.notifyRefresh();
           },
         ),
       ),

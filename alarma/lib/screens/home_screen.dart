@@ -38,7 +38,6 @@ class _HomeScreenState extends State<HomeScreen>
     0xFF3D2B4A,
   ); // mov-inchis, vizibil pe ambele
   static const _textSecond = Color(0xFF8A7095);
-  static const _white70 = Color(0xB3FFFFFF);
   static const _greenSoft = Color(0xFF84C9A0);
 
   @override
@@ -123,18 +122,14 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   String _nextAlarmText(AlarmModel alarm) {
-    final now = DateTime.now();
-    var target = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      alarm.hour,
-      alarm.minute,
-    );
-    if (target.isBefore(now)) target = target.add(const Duration(days: 1));
-    final diff = target.difference(now);
-    final h = diff.inHours;
+    // Foloseste acelasi calcul ca programarea (tine cont de zilele bifate).
+    // Varianta veche presupunea mereu azi/maine si arata gresit orice alarma
+    // repetitiva care nu cadea in urmatoarele 24h.
+    final diff = _scheduler.nextOccurrence(alarm).difference(DateTime.now());
+    final d = diff.inDays;
+    final h = diff.inHours % 24;
     final m = diff.inMinutes % 60;
+    if (d > 0) return 'peste ${d}z ${h}h';
     if (h > 0) return 'peste ${h}h ${m}min';
     return 'peste ${m}min';
   }
@@ -154,8 +149,8 @@ class _HomeScreenState extends State<HomeScreen>
                 colors: [
                   Color.lerp(_bgStart, _blueLight, t * 0.3)!,
                   Color.lerp(
-                    _midTone.withOpacity(0.3),
-                    _roseLight.withOpacity(0.3),
+                    _midTone.withValues(alpha: 0.3),
+                    _roseLight.withValues(alpha: 0.3),
                     t,
                   )!,
                   Color.lerp(_bgEnd, _roseLight, t * 0.2)!,
@@ -241,17 +236,17 @@ class _HomeScreenState extends State<HomeScreen>
             Positioned(
               top: -30,
               left: -30,
-              child: _blurCircle(140, _rosePastel.withOpacity(0.35)),
+              child: _blurCircle(140, _rosePastel.withValues(alpha: 0.35)),
             ),
             Positioned(
               top: 20,
               right: -20,
-              child: _blurCircle(100, _bluePastel.withOpacity(0.45)),
+              child: _blurCircle(100, _bluePastel.withValues(alpha: 0.45)),
             ),
             Positioned(
               bottom: -20,
               left: 80,
-              child: _blurCircle(80, _midTone.withOpacity(0.3)),
+              child: _blurCircle(80, _midTone.withValues(alpha: 0.3)),
             ),
             // Linie subtire jos
             Positioned(
@@ -263,10 +258,10 @@ class _HomeScreenState extends State<HomeScreen>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      _rosePastel.withOpacity(0.0),
-                      _rosePastel.withOpacity(0.5),
-                      _bluePastel.withOpacity(0.5),
-                      _bluePastel.withOpacity(0.0),
+                      _rosePastel.withValues(alpha: 0.0),
+                      _rosePastel.withValues(alpha: 0.5),
+                      _bluePastel.withValues(alpha: 0.5),
+                      _bluePastel.withValues(alpha: 0.0),
                     ],
                   ),
                 ),
@@ -326,11 +321,11 @@ class _HomeScreenState extends State<HomeScreen>
         height: 44,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          color: Colors.white.withOpacity(0.45),
-          border: Border.all(color: Colors.white.withOpacity(0.6), width: 1),
+          color: Colors.white.withValues(alpha: 0.45),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1),
           boxShadow: [
             BoxShadow(
-              color: _rosePastel.withOpacity(0.2),
+              color: _rosePastel.withValues(alpha: 0.2),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -358,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: _rosePastel.withOpacity(0.3),
+                  color: _rosePastel.withValues(alpha: 0.3),
                   blurRadius: 20,
                   spreadRadius: 4,
                 ),
@@ -432,32 +427,32 @@ class _HomeScreenState extends State<HomeScreen>
                   )
                 : LinearGradient(
                     colors: [
-                      Colors.white.withOpacity(0.6),
-                      Colors.white.withOpacity(0.6),
+                      Colors.white.withValues(alpha: 0.6),
+                      Colors.white.withValues(alpha: 0.6),
                     ],
                   ),
             border: Border.all(
               color: isOn
-                  ? Colors.white.withOpacity(0.9)
-                  : Colors.white.withOpacity(0.5),
+                  ? Colors.white.withValues(alpha: 0.9)
+                  : Colors.white.withValues(alpha: 0.5),
               width: 1.5,
             ),
             boxShadow: isOn
                 ? [
                     BoxShadow(
-                      color: _rosePastel.withOpacity(0.25),
+                      color: _rosePastel.withValues(alpha: 0.25),
                       blurRadius: 18,
                       offset: const Offset(0, 6),
                     ),
                     BoxShadow(
-                      color: _bluePastel.withOpacity(0.2),
+                      color: _bluePastel.withValues(alpha: 0.2),
                       blurRadius: 18,
                       offset: const Offset(4, 8),
                     ),
                   ]
                 : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -569,13 +564,13 @@ class _HomeScreenState extends State<HomeScreen>
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              _greenSoft.withOpacity(0.15),
-                              _greenSoft.withOpacity(0.08),
+                              _greenSoft.withValues(alpha: 0.15),
+                              _greenSoft.withValues(alpha: 0.08),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: _greenSoft.withOpacity(0.3),
+                            color: _greenSoft.withValues(alpha: 0.3),
                             width: 0.8,
                           ),
                         ),
@@ -632,7 +627,7 @@ class _HomeScreenState extends State<HomeScreen>
           boxShadow: isOn
               ? [
                   BoxShadow(
-                    color: _rosePastel.withOpacity(0.4),
+                    color: _rosePastel.withValues(alpha: 0.4),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -681,7 +676,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isOn ? from.withOpacity(0.8) : Colors.grey.shade200,
+          color: isOn ? from.withValues(alpha: 0.8) : Colors.grey.shade200,
           width: 0.8,
         ),
       ),
@@ -712,12 +707,12 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         boxShadow: [
           BoxShadow(
-            color: _rosePastel.withOpacity(0.5),
+            color: _rosePastel.withValues(alpha: 0.5),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
           BoxShadow(
-            color: _bluePastel.withOpacity(0.3),
+            color: _bluePastel.withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(4, 8),
           ),

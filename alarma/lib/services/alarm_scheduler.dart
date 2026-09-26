@@ -57,12 +57,15 @@ class AlarmScheduler {
   factory AlarmScheduler() => _i;
   AlarmScheduler._();
 
+  // Momentul urmatoarei declansari. Public ca ecranele sa afiseze exact ce se
+  // si programeaza (altfel textul din lista si ora reala pot diverge).
+  DateTime nextOccurrence(AlarmModel alarm) => alarm.repeatDays.any((d) => d)
+      ? _nextRepeat(alarm)
+      : _nextOneShot(alarm);
+
   Future<void> scheduleAlarm(AlarmModel alarm) async {
     if (!alarm.isEnabled || alarm.id == null) return;
-    final t = alarm.repeatDays.any((d) => d)
-        ? _nextRepeat(alarm)
-        : _nextOneShot(alarm);
-    await _scheduleAt(alarm, t);
+    await _scheduleAt(alarm, nextOccurrence(alarm));
   }
 
   // Programeaza un snooze la o ora arbitrara, folosind acelasi id de alarma
@@ -120,7 +123,12 @@ class AlarmScheduler {
 
   DateTime _nextRepeat(AlarmModel a) {
     final now = DateTime.now();
-    for (int i = 0; i < 7; i++) {
+    // i merge pana la 7 inclusiv: cand alarma are bifata o singura zi si ora de
+    // azi tocmai a trecut (cazul reprogramarii dupa ce a sunat), i=7 e aceeasi
+    // zi a saptamanii viitoare. Cu i<7 se cadea pe fallback si alarma sarea
+    // gresit pe ziua urmatoare. Trebuie sa ramana identic cu
+    // AlarmStore.nextTriggerOrNull din Kotlin (for i in 0..7).
+    for (int i = 0; i <= 7; i++) {
       final dayIdx = (now.weekday - 1 + i) % 7;
       if (a.repeatDays[dayIdx]) {
         final c = DateTime(

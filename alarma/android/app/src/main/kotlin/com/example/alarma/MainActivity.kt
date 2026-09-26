@@ -52,6 +52,19 @@ class MainActivity : FlutterActivity() {
     private fun handleAlarmIntent(intent: Intent?) {
         if (intent?.getBooleanExtra("show_ringing", false) == true) {
             val alarmId = intent.getIntExtra("alarm_id", -1)
+
+            // Consuma extras: Android re-livreaza intentul de lansare cand
+            // taskul e reluat din recente sau procesul e recreat, iar fara asta
+            // ecranul de sonerie reaparea dupa ce alarma fusese deja oprita.
+            intent.removeExtra("show_ringing")
+            intent.removeExtra("alarm_id")
+            setIntent(intent)
+
+            // Gard suplimentar: arata soneria doar daca aceasta alarma chiar
+            // suna acum (serviciul e viu). Acopera si cazul in care intentul
+            // vechi supravietuieste mortii procesului.
+            if (AlarmStore.ringingId(this) != alarmId) return
+
             if (alarmId != -1) {
                 // Retine id-ul: la cold start, Dart inca nu e gata si invokeMethod
                 // se poate pierde. Flutter il preia prin consumePendingAlarm.
@@ -78,6 +91,10 @@ class MainActivity : FlutterActivity() {
                         val id = pendingAlarmId
                         pendingAlarmId = -1
                         result.success(id)
+                    }
+                    // Alarmele oprite din notificare, fara ca Dart sa fi rulat.
+                    "consumeStoppedAlarms" -> {
+                        result.success(AlarmStore.consumeStopped(this))
                     }
                     "scheduleNativeAlarm" -> {
                         val alarm = NativeAlarm(
@@ -124,6 +141,9 @@ class MainActivity : FlutterActivity() {
                     "stopAlarm" -> {
                         val intent = Intent(this, AlarmSoundService::class.java).apply {
                             action = "STOP"
+                            // Oprire ceruta din aplicatie: Dart isi gestioneaza
+                            // singur starea, deci nu marcam alarma ca oprita.
+                            putExtra("from_app", true)
                         }
                         startService(intent)
                         result.success(null)

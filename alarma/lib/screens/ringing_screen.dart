@@ -25,20 +25,11 @@ class _RingingScreenState extends State<RingingScreen>
 
   late AnimationController _pulseCtrl;
   late AnimationController _ringCtrl;
-  late AnimationController _shimmerCtrl;
   late Animation<double> _pulse;
   late Animation<double> _ring;
-  late Animation<double> _shimmer;
 
   static const _bgStart = Color(0xFFFCEEF5);
   static const _bgEnd = Color(0xFFEBF4FC);
-  static const _rosePastel = Color(0xFFF2B8CC);
-  static const _roseLight = Color(0xFFFAD4E3);
-  static const _roseDark = Color(0xFFD4789A);
-  static const _bluePastel = Color(0xFFB8D4F2);
-  static const _blueLight = Color(0xFFD4E8FA);
-  static const _blueDark = Color(0xFF5B9EC9);
-  static const _midTone = Color(0xFFCFC4EF);
   static const _textPrimary = Color(0xFF3D2B4A);
   static const _textSecond = Color(0xFF8A7095);
 
@@ -56,11 +47,6 @@ class _RingingScreenState extends State<RingingScreen>
       duration: const Duration(milliseconds: 500),
     )..repeat(reverse: true);
 
-    _shimmerCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat();
-
     _pulse = Tween<double>(
       begin: 0.90,
       end: 1.10,
@@ -69,10 +55,6 @@ class _RingingScreenState extends State<RingingScreen>
       begin: -0.04,
       end: 0.04,
     ).animate(CurvedAnimation(parent: _ringCtrl, curve: Curves.elasticInOut));
-    _shimmer = Tween<double>(
-      begin: -2,
-      end: 2,
-    ).animate(CurvedAnimation(parent: _shimmerCtrl, curve: Curves.easeInOut));
   }
 
   Future<void> _stopAlarmService() async {
@@ -81,22 +63,18 @@ class _RingingScreenState extends State<RingingScreen>
     } catch (_) {}
   }
 
-  Future<void> _moveToBack() async {
-    try {
-      await _alarmChannel.invokeMethod('moveToBack');
-    } catch (_) {}
-  }
-
+  // Nici Oprește, nici Amână nu mai trimit aplicatia in fundal (moveToBack).
+  // Pe langa faptul ca parea o inchidere spontana, backgroundul oprea cadrele
+  // exact cand ecranul de sonerie se inchidea, iar animatia de pop ramanea
+  // neterminata — asa ecranul reaparea la redeschiderea aplicatiei.
   void _handleStop() async {
     await _stopAlarmService();
     widget.onStop();
-    await _moveToBack();
   }
 
   void _handleSnooze() async {
     await _stopAlarmService();
     widget.onSnooze();
-    await _moveToBack();
   }
 
   @override
@@ -212,7 +190,7 @@ class _RingingScreenState extends State<RingingScreen>
           children: [
             AnimatedBuilder(
               animation: _pulseCtrl,
-              builder: (_, __) => Container(
+              builder: (_, _) => Container(
                 width: 160,
                 height: 160,
                 decoration: BoxDecoration(
@@ -489,7 +467,6 @@ class _RingingScreenState extends State<RingingScreen>
   void dispose() {
     _pulseCtrl.dispose();
     _ringCtrl.dispose();
-    _shimmerCtrl.dispose();
     super.dispose();
   }
 }

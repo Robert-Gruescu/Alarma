@@ -30,7 +30,6 @@ class _SoundsScreenState extends State<SoundsScreen>
   static const _bluePastel = Color(0xFFB8D4F2);
   static const _blueLight = Color(0xFFD4E8FA);
   static const _blueDark = Color(0xFF5B9EC9);
-  static const _midTone = Color(0xFFCFC4EF);
   static const _textPrimary = Color(0xFF3D2B4A);
   static const _textSecond = Color(0xFF8A7095);
 
@@ -77,7 +76,7 @@ class _SoundsScreenState extends State<SoundsScreen>
               fontWeight: FontWeight.w600,
             ),
           ),
-          backgroundColor: _roseDark.withOpacity(0.9),
+          backgroundColor: _roseDark.withValues(alpha: 0.9),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -104,7 +103,7 @@ class _SoundsScreenState extends State<SoundsScreen>
             ),
             boxShadow: [
               BoxShadow(
-                color: _rosePastel.withOpacity(0.3),
+                color: _rosePastel.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -150,10 +149,10 @@ class _SoundsScreenState extends State<SoundsScreen>
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: _rosePastel.withOpacity(0.4),
+                            color: _rosePastel.withValues(alpha: 0.4),
                           ),
                         ),
                         child: Center(
@@ -181,7 +180,7 @@ class _SoundsScreenState extends State<SoundsScreen>
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: _rosePastel.withOpacity(0.4),
+                              color: _rosePastel.withValues(alpha: 0.4),
                               blurRadius: 8,
                               offset: const Offset(0, 3),
                             ),
@@ -279,11 +278,11 @@ class _SoundsScreenState extends State<SoundsScreen>
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.55),
+                color: Colors.white.withValues(alpha: 0.55),
                 borderRadius: BorderRadius.circular(13),
-                border: Border.all(color: Colors.white.withOpacity(0.7)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
                 boxShadow: [
-                  BoxShadow(color: _rosePastel.withOpacity(0.2), blurRadius: 8),
+                  BoxShadow(color: _rosePastel.withValues(alpha: 0.2), blurRadius: 8),
                 ],
               ),
               child: Icon(
@@ -322,7 +321,7 @@ class _SoundsScreenState extends State<SoundsScreen>
         Text(
           text,
           style: GoogleFonts.lato(
-            color: _textSecond.withOpacity(0.8),
+            color: _textSecond.withValues(alpha: 0.8),
             fontSize: 10,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.8,
@@ -337,9 +336,9 @@ class _SoundsScreenState extends State<SoundsScreen>
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.symmetric(vertical: 32),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.4),
+        color: Colors.white.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withOpacity(0.6), width: 1.2),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1.2),
       ),
       child: Column(
         children: [
@@ -367,7 +366,7 @@ class _SoundsScreenState extends State<SoundsScreen>
           Text(
             'Apasa butonul de mai jos pentru a importa',
             style: GoogleFonts.lato(
-              color: _textSecond.withOpacity(0.6),
+              color: _textSecond.withValues(alpha: 0.6),
               fontSize: 12,
             ),
           ),
@@ -395,29 +394,29 @@ class _SoundsScreenState extends State<SoundsScreen>
                 ],
               )
             : null,
-        color: isP ? null : Colors.white.withOpacity(0.55),
+        color: isP ? null : Colors.white.withValues(alpha: 0.55),
         border: Border.all(
           color: isP
-              ? _rosePastel.withOpacity(0.5)
-              : Colors.white.withOpacity(0.75),
+              ? _rosePastel.withValues(alpha: 0.5)
+              : Colors.white.withValues(alpha: 0.75),
           width: 1.2,
         ),
         boxShadow: isP
             ? [
                 BoxShadow(
-                  color: _rosePastel.withOpacity(0.25),
+                  color: _rosePastel.withValues(alpha: 0.25),
                   blurRadius: 14,
                   offset: const Offset(0, 5),
                 ),
                 BoxShadow(
-                  color: _bluePastel.withOpacity(0.2),
+                  color: _bluePastel.withValues(alpha: 0.2),
                   blurRadius: 14,
                   offset: const Offset(3, 7),
                 ),
               ]
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -438,16 +437,16 @@ class _SoundsScreenState extends State<SoundsScreen>
                         colors: [Color(0xFFF2B8CC), Color(0xFFB8D4F2)],
                       )
                     : null,
-                color: isP ? null : Colors.white.withOpacity(0.7),
+                color: isP ? null : Colors.white.withValues(alpha: 0.7),
                 border: Border.all(
                   color: isP
                       ? Colors.transparent
-                      : _rosePastel.withOpacity(0.3),
+                      : _rosePastel.withValues(alpha: 0.3),
                 ),
                 boxShadow: isP
                     ? [
                         BoxShadow(
-                          color: _rosePastel.withOpacity(0.3),
+                          color: _rosePastel.withValues(alpha: 0.3),
                           blurRadius: 8,
                         ),
                       ]
@@ -536,16 +535,16 @@ class _SoundsScreenState extends State<SoundsScreen>
                           colors: [Color(0xFFD47898), Color(0xFF5B9EC9)],
                         )
                       : null,
-                  color: isP ? null : Colors.white.withOpacity(0.7),
+                  color: isP ? null : Colors.white.withValues(alpha: 0.7),
                   border: Border.all(
                     color: isP
                         ? Colors.transparent
-                        : _bluePastel.withOpacity(0.5),
+                        : _bluePastel.withValues(alpha: 0.5),
                   ),
                   boxShadow: isP
                       ? [
                           BoxShadow(
-                            color: _rosePastel.withOpacity(0.4),
+                            color: _rosePastel.withValues(alpha: 0.4),
                             blurRadius: 8,
                             offset: const Offset(0, 3),
                           ),
@@ -569,9 +568,9 @@ class _SoundsScreenState extends State<SoundsScreen>
                   height: 40,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFFFFF0F0).withOpacity(0.8),
+                    color: const Color(0xFFFFF0F0).withValues(alpha: 0.8),
                     border: Border.all(
-                      color: const Color(0xFFFFB3B3).withOpacity(0.5),
+                      color: const Color(0xFFFFB3B3).withValues(alpha: 0.5),
                     ),
                   ),
                   child: const Icon(
@@ -603,12 +602,12 @@ class _SoundsScreenState extends State<SoundsScreen>
           ),
           boxShadow: [
             BoxShadow(
-              color: _rosePastel.withOpacity(0.45),
+              color: _rosePastel.withValues(alpha: 0.45),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
             BoxShadow(
-              color: _bluePastel.withOpacity(0.3),
+              color: _bluePastel.withValues(alpha: 0.3),
               blurRadius: 16,
               offset: const Offset(4, 8),
             ),

@@ -15,6 +15,11 @@ class AlarmReceiver : BroadcastReceiver() {
         val vibrate = intent.getBooleanExtra("vibrate", true)
         val alarmId = intent.getIntExtra("alarm_id", 0)
 
+        // Marcheaza alarma drept "suna acum" inainte de orice altceva: receiverul
+        // ruleaza sigur inaintea serviciului si a activitatii, deci MainActivity
+        // nu poate citi flagul prea devreme si respinge din greseala soneria.
+        AlarmStore.setRinging(context, alarmId)
+
         // WakeLock cu FULL_WAKE_LOCK + ACQUIRE_CAUSES_WAKEUP = porneste ecranul fizic
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         val wakeLock = pm.newWakeLock(

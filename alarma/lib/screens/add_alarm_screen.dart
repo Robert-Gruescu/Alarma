@@ -23,15 +23,12 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
   static const _bgStart = Color(0xFFFCEEF5);
   static const _bgEnd = Color(0xFFEBF4FC);
   static const _rosePastel = Color(0xFFF2B8CC);
-  static const _roseLight = Color(0xFFFAD4E3);
   static const _roseDark = Color(0xFFD4789A);
   static const _bluePastel = Color(0xFFB8D4F2);
   static const _blueLight = Color(0xFFD4E8FA);
   static const _blueDark = Color(0xFF5B9EC9);
-  static const _midTone = Color(0xFFCFC4EF);
   static const _textPrimary = Color(0xFF3D2B4A);
   static const _textSecond = Color(0xFF8A7095);
-  static const _surface = Color(0xFFFFFFFF);
 
   late int _hour, _minute;
   late List<bool> _repeatDays;
@@ -390,11 +387,11 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.55),
+                color: Colors.white.withValues(alpha: 0.55),
                 borderRadius: BorderRadius.circular(13),
-                border: Border.all(color: Colors.white.withOpacity(0.7)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
                 boxShadow: [
-                  BoxShadow(color: _rosePastel.withOpacity(0.2), blurRadius: 8),
+                  BoxShadow(color: _rosePastel.withValues(alpha: 0.2), blurRadius: 8),
                 ],
               ),
               child: Icon(
@@ -440,12 +437,12 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
           ),
           boxShadow: [
             BoxShadow(
-              color: _rosePastel.withOpacity(0.35),
+              color: _rosePastel.withValues(alpha: 0.35),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
             BoxShadow(
-              color: _bluePastel.withOpacity(0.25),
+              color: _bluePastel.withValues(alpha: 0.25),
               blurRadius: 20,
               offset: const Offset(4, 10),
             ),
@@ -462,7 +459,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
                 height: 70,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.25),
+                  color: Colors.white.withValues(alpha: 0.25),
                 ),
               ),
             ),
@@ -474,7 +471,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
                 height: 45,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _bluePastel.withOpacity(0.3),
+                  color: _bluePastel.withValues(alpha: 0.3),
                 ),
               ),
             ),
@@ -511,9 +508,9 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.45),
+                    color: Colors.white.withValues(alpha: 0.45),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.6)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -560,7 +557,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
               decoration: InputDecoration(
                 hintText: 'Eticheta (optional)',
                 hintStyle: GoogleFonts.lato(
-                  color: _textSecond.withOpacity(0.6),
+                  color: _textSecond.withValues(alpha: 0.6),
                   fontSize: 14,
                 ),
                 border: InputBorder.none,
@@ -601,17 +598,17 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
                         ],
                       )
                     : null,
-                color: active ? null : Colors.white.withOpacity(0.5),
+                color: active ? null : Colors.white.withValues(alpha: 0.5),
                 border: Border.all(
                   color: active
                       ? Colors.transparent
-                      : _rosePastel.withOpacity(0.4),
+                      : _rosePastel.withValues(alpha: 0.4),
                   width: 1.2,
                 ),
                 boxShadow: active
                     ? [
                         BoxShadow(
-                          color: _rosePastel.withOpacity(0.4),
+                          color: _rosePastel.withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
@@ -658,11 +655,11 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
                         ],
                       )
                     : null,
-                color: sel ? null : Colors.white.withOpacity(0.3),
+                color: sel ? null : Colors.white.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: sel
-                      ? _rosePastel.withOpacity(0.5)
+                      ? _rosePastel.withValues(alpha: 0.5)
                       : Colors.transparent,
                   width: 1,
                 ),
@@ -679,7 +676,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
                               colors: [Color(0xFFF2B8CC), Color(0xFFB8D4F2)],
                             )
                           : null,
-                      color: sel ? null : Colors.white.withOpacity(0.6),
+                      color: sel ? null : Colors.white.withValues(alpha: 0.6),
                     ),
                     child: Icon(
                       sound.isCustom
@@ -726,8 +723,8 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
                       margin: const EdgeInsets.only(left: 8),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.6),
-                        border: Border.all(color: _bluePastel.withOpacity(0.5)),
+                        color: Colors.white.withValues(alpha: 0.6),
+                        border: Border.all(color: _bluePastel.withValues(alpha: 0.5)),
                       ),
                       child: Icon(
                         Icons.play_arrow_rounded,
@@ -798,8 +795,8 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  _rosePastel.withOpacity(0.3),
-                  _bluePastel.withOpacity(0.3),
+                  _rosePastel.withValues(alpha: 0.3),
+                  _bluePastel.withValues(alpha: 0.3),
                   Colors.transparent,
                 ],
               ),
@@ -827,8 +824,8 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  _rosePastel.withOpacity(0.3),
-                  _bluePastel.withOpacity(0.3),
+                  _rosePastel.withValues(alpha: 0.3),
+                  _bluePastel.withValues(alpha: 0.3),
                   Colors.transparent,
                 ],
               ),
@@ -884,7 +881,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
                 colors: [Color(0xFFFAD4E3), Color(0xFFD4E8FA)],
               ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _rosePastel.withOpacity(0.4)),
+              border: Border.all(color: _rosePastel.withValues(alpha: 0.4)),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<int>(
@@ -933,12 +930,12 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
           ),
           boxShadow: [
             BoxShadow(
-              color: _rosePastel.withOpacity(0.5),
+              color: _rosePastel.withValues(alpha: 0.5),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
             BoxShadow(
-              color: _bluePastel.withOpacity(0.3),
+              color: _bluePastel.withValues(alpha: 0.3),
               blurRadius: 16,
               offset: const Offset(4, 8),
             ),
@@ -964,17 +961,17 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.55),
+        color: Colors.white.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withOpacity(0.75), width: 1.2),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.75), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: _rosePastel.withOpacity(0.1),
+            color: _rosePastel.withValues(alpha: 0.1),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
           BoxShadow(
-            color: _bluePastel.withOpacity(0.08),
+            color: _bluePastel.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(2, 6),
           ),
@@ -987,7 +984,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
             Text(
               label,
               style: GoogleFonts.lato(
-                color: _textSecond.withOpacity(0.7),
+                color: _textSecond.withValues(alpha: 0.7),
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.8,
@@ -995,7 +992,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
             ),
             const SizedBox(height: 14),
           ],
-          if (child != null) child,
+          ?child,
         ],
       ),
     );
@@ -1028,7 +1025,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
           boxShadow: value
               ? [
                   BoxShadow(
-                    color: _rosePastel.withOpacity(0.4),
+                    color: _rosePastel.withValues(alpha: 0.4),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -1099,10 +1096,10 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
   }
 
   SliderThemeData get _sliderTheme => SliderTheme.of(context).copyWith(
-    activeTrackColor: _roseDark.withOpacity(0.6),
-    inactiveTrackColor: _blueLight.withOpacity(0.4),
+    activeTrackColor: _roseDark.withValues(alpha: 0.6),
+    inactiveTrackColor: _blueLight.withValues(alpha: 0.4),
     thumbColor: Colors.white,
-    overlayColor: _rosePastel.withOpacity(0.15),
+    overlayColor: _rosePastel.withValues(alpha: 0.15),
     thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 9),
     trackHeight: 4,
   );
