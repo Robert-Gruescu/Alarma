@@ -96,6 +96,11 @@ class MainActivity : FlutterActivity() {
                     "consumeStoppedAlarms" -> {
                         result.success(AlarmStore.consumeStopped(this))
                     }
+                    // Id-ul alarmei care suna acum, sau -1. Dart il foloseste ca
+                    // sa NU resincronizeze alarmele in timp ce una suna.
+                    "ringingAlarmId" -> {
+                        result.success(AlarmStore.ringingId(this))
+                    }
                     "scheduleNativeAlarm" -> {
                         val alarm = NativeAlarm(
                             id = call.argument<Int>("alarm_id") ?: 0,

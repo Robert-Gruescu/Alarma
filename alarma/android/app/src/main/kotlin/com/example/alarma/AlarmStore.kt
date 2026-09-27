@@ -27,6 +27,17 @@ data class NativeAlarm(
 // de BootReceiver (dupa BOOT_COMPLETED).
 object AlarmStore {
     private const val PREFS = "alarma_native_alarms"
+
+    // Stocare criptata pe DISPOZITIV, nu pe credentialele utilizatorului.
+    // Motiv: dupa un restart, pana la prima deblocare a telefonului, stocarea
+    // obisnuita e inaccesibila si BOOT_COMPLETED nici nu se difuzeaza. Masurat
+    // pe Galaxy A33: 23 de minute in care alarmele nu existau in sistem.
+    // Aici putem citi inainte de deblocare, deci LOCKED_BOOT_COMPLETED poate
+    // rearma alarmele imediat dupa boot.
+    private fun prefs(ctx: Context) =
+        ctx.createDeviceProtectedStorageContext()
+            .also { de -> de.moveSharedPreferencesFrom(ctx, PREFS) }
+            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private const val KEY_IDS = "ids"
     private const val KEY_STOPPED = "stopped_ids"
     private const val KEY_RINGING = "ringing_id"
@@ -37,17 +48,17 @@ object AlarmStore {
     // ce taskul e reciclat, iar fara verificarea asta ecranul de sonerie
     // reaparea desi alarma fusese deja oprita.
     fun setRinging(ctx: Context, id: Int) {
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs(ctx)
             .edit().putInt(KEY_RINGING, id).apply()
     }
 
     fun clearRinging(ctx: Context) {
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs(ctx)
             .edit().remove(KEY_RINGING).apply()
     }
 
     fun ringingId(ctx: Context): Int =
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_RINGING, -1)
+        prefs(ctx).getInt(KEY_RINGING, -1)
 
     // Alarma a fost oprita din actiunea "Opreste" a notificarii, deci fara ca
     // Flutter sa afle. Retinem id-ul; Dart il preia prin consumeStoppedAlarms
@@ -59,7 +70,7 @@ object AlarmStore {
 
     fun markStopped(ctx: Context, id: Int) {
         if (id < 0) return
-        val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val p = prefs(ctx)
         val now = System.currentTimeMillis()
         val kept = (p.getStringSet(KEY_STOPPED, emptySet()) ?: emptySet())
             .filter { entry ->
@@ -72,7 +83,7 @@ object AlarmStore {
     }
 
     fun consumeStopped(ctx: Context): List<Int> {
-        val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val p = prefs(ctx)
         val entries = p.getStringSet(KEY_STOPPED, emptySet()) ?: emptySet()
         p.edit().remove(KEY_STOPPED).apply()
         val now = System.currentTimeMillis()
@@ -84,7 +95,7 @@ object AlarmStore {
     }
 
     fun save(ctx: Context, a: NativeAlarm) {
-        val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val p = prefs(ctx)
         val obj = JSONObject().apply {
             put("id", a.id)
             put("trigger_time", a.triggerTime)
@@ -107,14 +118,14 @@ object AlarmStore {
     }
 
     fun remove(ctx: Context, id: Int) {
-        val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val p = prefs(ctx)
         val ids = HashSet(p.getStringSet(KEY_IDS, emptySet()) ?: emptySet())
         ids.remove(id.toString())
         p.edit().remove("alarm_$id").putStringSet(KEY_IDS, ids).apply()
     }
 
     fun all(ctx: Context): List<NativeAlarm> {
-        val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val p = prefs(ctx)
         val ids = p.getStringSet(KEY_IDS, emptySet()) ?: emptySet()
         val list = mutableListOf<NativeAlarm>()
         for (idStr in ids) {

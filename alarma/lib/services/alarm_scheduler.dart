@@ -20,6 +20,18 @@ void alarmCallback(int alarmId) async {
   final db = DatabaseService();
   final alarm = await db.getAlarmById(alarmId);
 
+  // Nu posta nimic pentru o declansare mult intarziata. Calea asta nu produce
+  // sunet (nativul detine sunetul), deci o notificare "Alarma suna!" aparuta la
+  // zeci de minute dupa ora reala doar da impresia falsa ca alarma a mers.
+  // Caz real: telefon repornit si lasat blocat -> alarma nativa lipsa, iar
+  // alarm_manager_plus si-a declansat alarma expirata cu 18 minute intarziere.
+  if (alarm != null && alarm.nextTriggerMs > 0) {
+    final lateBy = DateTime.now().millisecondsSinceEpoch - alarm.nextTriggerMs;
+    if (lateBy > 5 * 60 * 1000) {
+      return;
+    }
+  }
+
   final n = FlutterLocalNotificationsPlugin();
   await n.initialize(
     const InitializationSettings(
@@ -78,6 +90,14 @@ class AlarmScheduler {
   }
 
   Future<void> _scheduleAt(AlarmModel alarm, DateTime t) async {
+    // Retine ora reala a declansarii (inclusiv pentru snooze). alarmCallback o
+    // foloseste ca sa distinga o declansare la timp de una intarziata.
+    try {
+      await DatabaseService().updateNextTrigger(alarm.id!, t.millisecondsSinceEpoch);
+    } catch (e) {
+      debugPrint('Nu am putut salva next_trigger pentru ${alarm.id}: $e');
+    }
+
     // Programeaza alarma nativa prin Kotlin (pentru sunet)
     try {
       await _alarmChannel.invokeMethod('scheduleNativeAlarm', {
@@ -124,7 +144,13 @@ class AlarmScheduler {
       debugPrint('EROARE cancelNativeAlarm pentru alarma $id: $e');
     }
     await AndroidAlarmManager.cancel(id);
-    await FlutterLocalNotificationsPlugin().cancel(id);
+    // Izolat: un esec al pluginului de notificari (a se vedea regulile
+    // ProGuard pentru Gson) nu are voie sa impiedice anularea alarmei.
+    try {
+      await FlutterLocalNotificationsPlugin().cancel(id);
+    } catch (e) {
+      debugPrint('Anularea notificarii $id a esuat (neblocant): $e');
+    }
   }
 
   DateTime _nextOneShot(AlarmModel a) {

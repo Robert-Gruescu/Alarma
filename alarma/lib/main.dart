@@ -86,7 +86,30 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
       _checkLaunchFromNotification();
       _consumePendingNativeAlarm();
       _consumeStoppedAlarms();
+      _resyncAlarms();
     });
+  }
+
+  // Plasa de siguranta: rearmeaza in sistem tot ce e activ in baza de date.
+  // Android pierde alarmele exacte in destule situatii pe care un receiver nu
+  // le prinde (Force stop din Setari, "Sleeping apps" pe Samsung, curatatoare
+  // de baterie). Alarma ramane activa in lista, dar nu mai exista in AlarmManager.
+  // Reprogramarea e idempotenta — acelasi id suprascrie aceeasi intrare.
+  Future<void> _resyncAlarms() async {
+    try {
+      // NU resincroniza cat timp suna o alarma. Aplicatia porneste tocmai ca sa
+      // afiseze soneria, iar alarma care suna e inca is_enabled=1 in baza de
+      // date — rescheduleAll o vedea ca activa cu ora trecuta si o rearma
+      // pentru MAINE. O alarma "o singura data" ajungea sa sune si a doua zi.
+      final ringingId = await _alarmChannel.invokeMethod<int>('ringingAlarmId');
+      if (ringingId != null && ringingId != -1) {
+        debugPrint('Resincronizare amanata: alarma $ringingId suna acum');
+        return;
+      }
+      await AlarmScheduler().rescheduleAll();
+    } catch (e) {
+      debugPrint('EROARE la resincronizarea alarmelor: $e');
+    }
   }
 
   @override
@@ -110,7 +133,7 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
 
       var changed = false;
       for (final id in ids) {
-        await notificationsPlugin.cancel(id);
+        await _cancelNotification(id);
         final alarm = await _db.getAlarmById(id);
         if (alarm == null) continue;
         // Doar alarmele fara repetitie se consuma; cele repetitive raman
@@ -123,6 +146,19 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
       }
       if (changed) AlarmRefreshService.instance.notifyRefresh();
     } catch (_) {}
+  }
+
+  // Anularea unei notificari nu are voie sa doboare fluxul alarmei.
+  // flutter_local_notifications a aruncat "Missing type parameter" in release
+  // (R8 + Gson), iar exceptia oprea tot ce urma — inclusiv programarea
+  // snooze-ului, care era chiar dupa acest apel. Regulile ProGuard rezolva
+  // cauza; asta e plasa, ca un esec de notificare sa nu mai coste o alarma.
+  Future<void> _cancelNotification(int id) async {
+    try {
+      await notificationsPlugin.cancel(id);
+    } catch (e) {
+      debugPrint('Anularea notificarii $id a esuat (neblocant): $e');
+    }
   }
 
   Future<void> _checkLaunchFromNotification() async {
@@ -149,16 +185,26 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
     // Aici doar afisam ecranul; evitam sa-l deschidem de doua ori.
     if (_ringingShown && _currentRingingId == id) return;
 
+    // Marcheaza IMEDIAT, inainte de orice await. Alarma ajunge aici pe doua cai
+    // (nativ prin triggerAlarmFromNative si alarm_manager_plus prin port). Cat
+    // timp se astepta baza de date, al doilea apel trecea si el de garda, si se
+    // stivuiau DOUA ecrane de sonerie: apasai Opreste, se inchidea unul, iar al
+    // doilea ramanea pe ecran desi soneria se oprise.
+    _currentRingingId = id;
+    _ringingShown = true;
+
     final alarm = await _db.getAlarmById(id);
-    if (alarm == null) return;
+    if (alarm == null) {
+      _ringingShown = false;
+      _currentRingingId = null;
+      return;
+    }
 
     // Reprogrameaza imediat urmatoarea aparitie daca e repetitiva
     if (alarm.repeatDays.any((d) => d)) {
       await AlarmScheduler().scheduleAlarm(alarm);
     }
 
-    _currentRingingId = id;
-    _ringingShown = true;
     await _nav.currentState?.push(
       MaterialPageRoute(
         fullscreenDialog: true,
@@ -179,7 +225,7 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
             // inchis) trebuie scoasa mereu. cancelAlarm o anuleaza, dar el
             // ruleaza doar pentru alarmele ne-repetitive; fara asta ramanea
             // agatata in bara la alarmele repetitive.
-            await notificationsPlugin.cancel(alarm.id!);
+            await _cancelNotification(alarm.id!);
 
             final isRepetitive = alarm.repeatDays.any((d) => d);
             if (!isRepetitive) {
@@ -196,7 +242,7 @@ class _AlarmAppState extends State<AlarmApp> with WidgetsBindingObserver {
             _nav.currentState?.pop();
 
             await _audio.stop();
-            await notificationsPlugin.cancel(alarm.id!);
+            await _cancelNotification(alarm.id!);
 
             final snoozeTime = DateTime.now().add(
               Duration(minutes: alarm.snoozeMinutes),

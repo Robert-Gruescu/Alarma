@@ -14,12 +14,19 @@ class DatabaseService {
     final path = join(await getDatabasesPath(), 'alarma.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onUpgrade: (db, oldVersion, newVersion) async {
         // v2: coloana 'vibrate' (vibratie la sonerie). Default 1 = pornit.
         if (oldVersion < 2) {
           await db.execute(
             "ALTER TABLE alarms ADD COLUMN vibrate INTEGER NOT NULL DEFAULT 1",
+          );
+        }
+        // v3: ora reala la care alarma a fost programata ultima data. Serveste
+        // ca alarmCallback sa stie daca declansarea e la timp sau intarziata.
+        if (oldVersion < 3) {
+          await db.execute(
+            "ALTER TABLE alarms ADD COLUMN next_trigger_ms INTEGER NOT NULL DEFAULT 0",
           );
         }
       },
@@ -36,7 +43,8 @@ class DatabaseService {
           progressive_duration_seconds INTEGER NOT NULL DEFAULT 60,
           max_volume REAL NOT NULL DEFAULT 1.0,
           snooze_minutes INTEGER NOT NULL DEFAULT 5,
-          vibrate INTEGER NOT NULL DEFAULT 1
+          vibrate INTEGER NOT NULL DEFAULT 1,
+          next_trigger_ms INTEGER NOT NULL DEFAULT 0
         )''');
         await db.execute('''
         CREATE TABLE sounds (
@@ -99,6 +107,15 @@ class DatabaseService {
 
   Future<int> insertSound(AlarmSound s) async =>
       (await database).insert('sounds', s.toMap()..remove('id'));
+
+  // Retine cand a fost programata efectiv alarma (inclusiv pentru snooze).
+  Future<void> updateNextTrigger(int id, int triggerMs) async =>
+      (await database).update(
+        'alarms',
+        {'next_trigger_ms': triggerMs},
+        where: 'id=?',
+        whereArgs: [id],
+      );
 
   Future<void> deleteSound(int id) async =>
       (await database).delete('sounds', where: 'id=?', whereArgs: [id]);

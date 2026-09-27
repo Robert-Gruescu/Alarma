@@ -47,6 +47,7 @@ class AlarmSoundService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "STOP") {
+            Log.w(TAG, "STOP primit, from_app=${intent.getBooleanExtra("from_app", false)}")
             // Raportam catre Dart doar oprirea din notificare. Daca oprirea vine
             // din aplicatie (Opreste sau Amana), Flutter stie deja ce are de
             // facut — iar la Amana marcarea ar fi anulat snooze-ul tocmai
@@ -87,6 +88,7 @@ class AlarmSoundService : Service() {
 
         // Porneste foreground service cu notificare full-screen (deschide ecranul)
         startForeground(9999, buildNotification(alarmId))
+        Log.w(TAG, "PORNIT alarma $alarmId, foreground activ")
 
         // Porneste sunetul
         playSound(soundPath, isAsset, maxVolume, progressive, progressiveDuration)
@@ -324,6 +326,7 @@ class AlarmSoundService : Service() {
     }
 
     override fun onDestroy() {
+        Log.w(TAG, "onDestroy — serviciul se opreste (alarma $currentAlarmId)")
         // Nu mai suna nimic — ecranul de sonerie nu mai are voie sa reapara.
         AlarmStore.clearRinging(this)
 

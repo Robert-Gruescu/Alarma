@@ -71,6 +71,7 @@
         <service
             android:name=".AlarmSoundService"
             android:exported="false"
+            android:directBootAware="true"
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
@@ -79,15 +80,29 @@
 
         <receiver
             android:name=".AlarmReceiver"
-            android:exported="true"/>
+            android:exported="true"
+            android:directBootAware="true"/>
 
         <receiver
             android:name=".BootReceiver"
-            android:exported="true">
+            android:exported="true"
+            android:directBootAware="true">
             <intent-filter>
+                <!-- Livrat INAINTE de prima deblocare a telefonului. Fara el,
+                     alarmele lipsesc din sistem din momentul boot-ului pana
+                     cand utilizatorul isi introduce codul. -->
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <!-- Toate situatiile in care Android arunca alarmele exacte.
+                     Cea mai importanta e ultima: la schimbarea permisiunii de
+                     alarme exacte, sistemul ANULEAZA toate alarmele aplicatiei,
+                     iar fara rearmare ele dispar in tacere. -->
+                <action android:name="android.intent.action.TIME_SET"/>
+                <action android:name="android.intent.action.TIMEZONE_CHANGED"/>
+                <action android:name="android.intent.action.LOCALE_CHANGED"/>
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"/>
             </intent-filter>
         </receiver>
 

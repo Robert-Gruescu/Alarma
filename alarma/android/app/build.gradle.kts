@@ -30,6 +30,12 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
+            // Fara regulile astea, R8 rupe Gson-ul din flutter_local_notifications
+            // si orice notificationsPlugin.cancel() arunca in release.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

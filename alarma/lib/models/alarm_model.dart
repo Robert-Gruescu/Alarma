@@ -37,6 +37,9 @@ class AlarmModel {
   final double maxVolume;
   final int snoozeMinutes;
   final bool vibrate;
+  /// Ora reala la care alarma a fost programata ultima data (ms epoch).
+  /// Include snooze-ul. 0 = necunoscut.
+  final int nextTriggerMs;
 
   AlarmModel({
     this.id,
@@ -53,6 +56,7 @@ class AlarmModel {
     this.maxVolume = 1.0,
     this.snoozeMinutes = 5,
     this.vibrate = true,
+    this.nextTriggerMs = 0,
   }) : repeatDays = repeatDays ?? List.filled(7, false);
 
   String get repeatDaysString {
@@ -84,6 +88,7 @@ class AlarmModel {
         'max_volume': maxVolume,
         'snooze_minutes': snoozeMinutes,
         'vibrate': vibrate ? 1 : 0,
+        'next_trigger_ms': nextTriggerMs,
       };
 
   factory AlarmModel.fromMap(Map<String, dynamic> map) {
@@ -103,6 +108,7 @@ class AlarmModel {
       maxVolume: (map['max_volume'] as num?)?.toDouble() ?? 1.0,
       snoozeMinutes: map['snooze_minutes'] ?? 5,
       vibrate: map['vibrate'] == null ? true : map['vibrate'] == 1,
+      nextTriggerMs: map['next_trigger_ms'] ?? 0,
     );
   }
 
@@ -121,6 +127,7 @@ class AlarmModel {
     double? maxVolume,
     int? snoozeMinutes,
     bool? vibrate,
+    int? nextTriggerMs,
   }) =>
       AlarmModel(
         id: id ?? this.id,
@@ -138,5 +145,6 @@ class AlarmModel {
         maxVolume: maxVolume ?? this.maxVolume,
         snoozeMinutes: snoozeMinutes ?? this.snoozeMinutes,
         vibrate: vibrate ?? this.vibrate,
+        nextTriggerMs: nextTriggerMs ?? this.nextTriggerMs,
       );
 }
