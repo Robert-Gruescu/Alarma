@@ -6,3 +6,8 @@ docs/CONTEXT.md
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# ── APK-uri exportate ────────────────────────────────────────
+# Binare mari; se construiesc din surse, nu se tin in repo.
+*.apk
+*.aab

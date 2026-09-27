@@ -11,6 +11,7 @@ Construit în Flutter, cu inima în Kotlin nativ — pentru ca sunetul să porne
 [![Kotlin](https://img.shields.io/badge/Kotlin-nativ-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com)
 [![Platformă](https://img.shields.io/badge/platform%C4%83-Android-lightgrey)](#)
+[![Licență: MIT](https://img.shields.io/badge/licen%C8%9B%C4%83-MIT-green)](LICENSE)
 
 </div>
 
@@ -152,6 +153,23 @@ Aplicația are un ecran dedicat care le explică și le cere pe rând.
   poate porni cât timp baza de date e criptată cu codul tău.
 - Aplicația este doar pentru **Android**. Mecanismele pe care se bazează
   (`AlarmManager`, foreground services, direct boot) nu au echivalent pe iOS.
+
+---
+
+## 📥 Descărcare
+
+APK-ul gata de instalat se găsește la
+**[Releases](../../releases)**.
+
+Pe telefon va trebui să permiți instalarea din surse necunoscute, iar la prima
+pornire să acorzi permisiunile din ecranul dedicat.
+
+---
+
+## 📄 Licență
+
+[MIT](LICENSE) — folosește codul cum vrei: copiază-l, modifică-l, publică-l.
+Singura condiție este să păstrezi nota de copyright.
 
 ---
 
