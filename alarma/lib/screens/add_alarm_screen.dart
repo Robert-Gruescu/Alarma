@@ -287,10 +287,16 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
             (index) => Center(
               child: Text(
                 index.toString().padLeft(2, '0'),
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 38,
+                // Lato, nu Playfair: cifrele se citesc dintr-o privire, fara
+                // contrastul gros/subtire al unui serif. tabularFigures le da
+                // tuturor aceeasi latime, altfel numerele tresar lateral in
+                // timp ce derulezi roata.
+                style: GoogleFonts.lato(
+                  fontSize: 40,
                   fontWeight: FontWeight.w700,
                   color: _textPrimary,
+                  letterSpacing: 1,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ),
@@ -499,11 +505,13 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
                       ).createShader(bounds),
                       child: Text(
                         timeStr,
-                        style: GoogleFonts.playfairDisplay(
+                        style: GoogleFonts.lato(
                           fontSize: 80,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
                           height: 1,
+                          letterSpacing: 2,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ),

@@ -25,7 +25,7 @@ să economisească baterie. Aplicația asta e construită în jurul acelor cazur
 
 <div align="center">
 
-| Lista de alarme | Alarmă nouă | Selector de oră |
+| Lista de alarme | Editare alarmă | Selector de oră |
 |:---:|:---:|:---:|
 | <img src="docs/screenshots/01-lista-alarme.png" width="230"/> | <img src="docs/screenshots/02-alarma-noua.png" width="230"/> | <img src="docs/screenshots/03-selector-ora.png" width="230"/> |
 
