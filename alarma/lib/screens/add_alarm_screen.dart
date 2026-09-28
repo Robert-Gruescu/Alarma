@@ -170,7 +170,9 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
                           padding: const EdgeInsets.symmetric(horizontal: 6),
                           child: Text(
                             ':',
-                            style: GoogleFonts.playfairDisplay(
+                            // Acelasi font ca cifrele din roti, altfel doua
+                            // puncte serif stateau intre cifre sans-serif.
+                            style: GoogleFonts.lato(
                               fontSize: 40,
                               fontWeight: FontWeight.w700,
                               color: _roseDark,

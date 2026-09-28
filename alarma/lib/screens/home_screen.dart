@@ -507,11 +507,16 @@ class _HomeScreenState extends State<HomeScreen>
                             ).createShader(bounds),
                       child: Text(
                         alarm.timeString,
-                        style: GoogleFonts.playfairDisplay(
+                        // Lato + tabularFigures, ca peste tot unde apar ore:
+                        // cifre de aceeasi latime, deci orele se aliniaza
+                        // vertical intre carduri, indiferent ce cifre contin.
+                        style: GoogleFonts.lato(
                           fontSize: 44,
                           fontWeight: FontWeight.w700,
                           color: Colors.white, // mascat de ShaderMask
                           height: 1,
+                          letterSpacing: 1,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ),

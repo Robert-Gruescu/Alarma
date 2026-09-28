@@ -259,11 +259,16 @@ class _RingingScreenState extends State<RingingScreen>
       ).createShader(bounds),
       child: Text(
         timeStr,
-        style: GoogleFonts.playfairDisplay(
+        // Lato + tabularFigures, ca peste tot unde apar ore. Aici conteaza in
+        // plus: ceasul se actualizeaza in timp ce suna, iar cu cifre de latimi
+        // diferite intreg blocul s-ar deplasa lateral la fiecare minut.
+        style: GoogleFonts.lato(
           fontSize: 90,
           fontWeight: FontWeight.w700,
           color: Colors.white,
           height: 1,
+          letterSpacing: 2,
+          fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
     );
