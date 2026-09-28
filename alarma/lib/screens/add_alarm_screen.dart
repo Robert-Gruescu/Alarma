@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/alarm_model.dart';
 import '../services/database_service.dart';
@@ -32,6 +33,9 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
 
   late int _hour, _minute;
   late List<bool> _repeatDays;
+  // Modul tragerii peste zile: true = selecteaza, false = deselecteaza,
+  // null = nu e nicio tragere in curs. Se stabileste din prima zi atinsa.
+  bool? _dragSelecting;
   late bool _progressiveVolume;
   late int _progressiveDuration;
   late double _maxVolume;
@@ -590,16 +594,67 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
   }
 
   // ── Card zile repetitie ──────────────────────────────────
+  //
+  // Zilele se pot selecta si tragand cu degetul peste ele, nu doar apasandu-le
+  // una cate una. Modul se stabileste din prima zi atinsa: daca era neselectata,
+  // tot ce atingi in acea tragere se selecteaza; daca era selectata, se
+  // deselecteaza. Acelasi comportament ca la selectarea celulelor intr-un tabel.
   Widget _buildRepeatCard() {
     return _glassCard(
       label: 'REPETA',
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(7, (i) {
-          final active = _repeatDays[i];
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Celule de latime egala: indexul se afla direct din pozitia degetului.
+          final cell = constraints.maxWidth / 7;
           return GestureDetector(
-            onTap: () => setState(() => _repeatDays[i] = !_repeatDays[i]),
-            child: AnimatedContainer(
+            behavior: HitTestBehavior.opaque,
+            // onTapUp, nu onTapDown: onTapDown se declanseaza si cand gestul
+            // devine tragere, si ziua s-ar comuta de doua ori.
+            onTapUp: (d) => _toggleDay(_dayIndexAt(d.localPosition.dx, cell)),
+            // Orizontal, nu pan: altfel gestul ar intra in conflict cu
+            // derularea verticala a paginii.
+            onHorizontalDragStart: (d) =>
+                _startDayPaint(_dayIndexAt(d.localPosition.dx, cell)),
+            onHorizontalDragUpdate: (d) =>
+                _paintDay(_dayIndexAt(d.localPosition.dx, cell)),
+            onHorizontalDragEnd: (_) => _dragSelecting = null,
+            onHorizontalDragCancel: () => _dragSelecting = null,
+            child: Row(
+              children: List.generate(
+                7,
+                (i) => Expanded(child: Center(child: _dayCircle(i))),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Ziua de sub deget. Se limiteaza la 0..6 ca tragerea dincolo de margini sa
+  // nu iasa din interval.
+  int _dayIndexAt(double dx, double cellWidth) =>
+      (dx / cellWidth).floor().clamp(0, 6);
+
+  void _toggleDay(int i) {
+    setState(() => _repeatDays[i] = !_repeatDays[i]);
+    HapticFeedback.selectionClick();
+  }
+
+  void _startDayPaint(int i) {
+    _dragSelecting = !_repeatDays[i];
+    _paintDay(i);
+  }
+
+  void _paintDay(int i) {
+    if (_dragSelecting == null || _repeatDays[i] == _dragSelecting) return;
+    setState(() => _repeatDays[i] = _dragSelecting!);
+    HapticFeedback.selectionClick();
+  }
+
+  Widget _dayCircle(int i) {
+    final active = _repeatDays[i];
+    return AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 38,
               height: 38,
@@ -633,19 +688,15 @@ class _AddAlarmScreenState extends State<AddAlarmScreen>
                       ]
                     : [],
               ),
-              child: Center(
-                child: Text(
-                  _dayNames[i],
-                  style: GoogleFonts.lato(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: active ? Colors.white : _textSecond,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }),
+      child: Center(
+        child: Text(
+          _dayNames[i],
+          style: GoogleFonts.lato(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: active ? Colors.white : _textSecond,
+          ),
+        ),
       ),
     );
   }
